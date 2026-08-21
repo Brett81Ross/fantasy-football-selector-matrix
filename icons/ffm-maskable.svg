@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Fantasy Football Matrix FFM shield logo">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#101a15"/><stop offset="1" stop-color="#050907"/></linearGradient>
+  <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9cff35"/><stop offset="1" stop-color="#39ff14"/></linearGradient>
+  <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".55" stop-color="#e7eaeb"/><stop offset="1" stop-color="#9da4a8"/></linearGradient>
+  <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="512" height="512" rx="92" fill="url(#bg)"/>
+<g opacity=".13" stroke="#39ff14" stroke-width="1"><path d="M64 85h384M64 125h384M64 165h384M64 205h384M64 245h384M64 285h384M64 325h384M64 365h384M64 405h384"/><path d="M90 60v392M130 60v392M170 60v392M210 60v392M250 60v392M290 60v392M330 60v392M370 60v392M410 60v392"/></g>
+<path d="M256 70 407 122v130c0 103-62 164-151 200C167 416 105 355 105 252V122L256 70Z" fill="#080e0a" stroke="#eff4f0" stroke-width="13"/>
+<path d="M256 82 395 130v121c0 92-53 148-139 184-86-36-139-92-139-184V130L256 82Z" fill="none" stroke="url(#green)" stroke-width="7" filter="url(#glow)"/>
+<g stroke="#fff" stroke-width="8" stroke-linecap="round"><path d="M206 131h100"/><path d="M220 115v32M241 111v36M263 109v38M285 111v36M306 115v32"/></g>
+<g font-family="Arial Black,Arial,sans-serif" font-size="116" font-style="italic" font-weight="900"><text x="127" y="285" fill="url(#silver)">FF</text><text x="308" y="285" fill="url(#green)">M</text></g>
+<g fill="none" stroke="url(#green)" stroke-width="7" stroke-linecap="round" stroke-dasharray="9 11"><path d="M177 350c35-31 62-27 91-5 29 22 54 14 78-17"/></g>
+<path d="m341 310 12 24-27-2" fill="none" stroke="#39ff14" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<g stroke="#fff" stroke-width="7" stroke-linecap="round"><path d="m166 320 19 19m0-19-19 19M211 354l18 18m0-18-18 18"/><circle cx="276" cy="372" r="13" fill="none"/></g>
+</svg>
