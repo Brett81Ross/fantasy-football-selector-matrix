@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.3.6';
+  const VERSION = '1.3.7';
   const SHIELD = '/icons/ffm-user-logo.svg';
 
   function applyBranding() {
