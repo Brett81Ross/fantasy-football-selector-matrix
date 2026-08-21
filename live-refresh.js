@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION='1.4.2';
+  const VERSION='1.4.3';
   const POLL_MS=20000;
   const VERSION_KEY='ffm-app-version';
   let busy=false;
