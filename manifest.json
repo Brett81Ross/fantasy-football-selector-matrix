@@ -10,22 +10,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/ffm-mark.svg",
+      "src": "/icons/ffm-user-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/ffm-maskable.svg",
+      "src": "/icons/ffm-user-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
     }
   ]
 }
