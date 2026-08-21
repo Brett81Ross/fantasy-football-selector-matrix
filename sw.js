@@ -1,10 +1,10 @@
-const CACHE='ff-matrix-v1.3.5';
-const CORE=['/','/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/icons/ffm-mark.svg','/icons/ffm-maskable.svg','/icons/icon-192.png','/icons/favicon-96.png'];
-const FAST_SCRIPT='<script src="/fast-draft.js?v=1.3.5"></script>';
-const ROSTER_SCRIPT='<script src="/roster-needs.js?v=1.3.5"></script>';
-const VORP_SCRIPT='<script src="/vorp.js?v=1.3.5"></script>';
-const TIER_SCRIPT='<script src="/tier-cliffs.js?v=1.3.5"></script>';
-const BRAND_SCRIPT='<script src="/brand-integration.js?v=1.3.5"></script>';
+const CACHE='ff-matrix-v1.3.6';
+const CORE=['/','/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/icons/ffm-user-logo.svg','/icons/favicon-96.png'];
+const FAST_SCRIPT='<script src="/fast-draft.js?v=1.3.6"></script>';
+const ROSTER_SCRIPT='<script src="/roster-needs.js?v=1.3.6"></script>';
+const VORP_SCRIPT='<script src="/vorp.js?v=1.3.6"></script>';
+const TIER_SCRIPT='<script src="/tier-cliffs.js?v=1.3.6"></script>';
+const BRAND_SCRIPT='<script src="/brand-integration.js?v=1.3.6"></script>';
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()));
@@ -35,7 +35,7 @@ function injectRuntime(response){
     const headers=new Headers(response.headers);
     headers.delete('content-length');
     headers.delete('content-encoding');
-    headers.set('x-ffm-runtime','1.3.5');
+    headers.set('x-ffm-runtime','1.3.6');
     return new Response(html,{status:response.status,statusText:response.statusText,headers});
   });
 }
