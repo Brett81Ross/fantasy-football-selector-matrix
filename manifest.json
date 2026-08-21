@@ -1,0 +1,10 @@
+{
+  "name": "Fantasy Football Selector Matrix™",
+  "short_name": "FF Matrix",
+  "description": "A fast fantasy football decision engine for drafts, start/sit choices, waivers, and trades.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07100c",
+  "theme_color": "#07100c",
+  "orientation": "portrait-primary"
+}
