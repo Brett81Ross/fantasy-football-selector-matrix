@@ -36,14 +36,25 @@ function csvRows(text, wanted) {
   return rows;
 }
 
-async function getText(url, timeoutMs=6500) {
+async function getText(url, timeoutMs=10000) {
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
-    const response=await fetch(url,{redirect:'follow',signal:controller.signal,headers:{'User-Agent':'Fantasy-Football-Matrix/1.3.5','Accept':'text/csv,text/plain;q=0.9,*/*;q=0.8'}});
+    const response=await fetch(url,{redirect:'follow',signal:controller.signal,headers:{'User-Agent':'Fantasy-Football-Matrix/1.3.7','Accept':'text/csv,text/plain;q=0.9,*/*;q=0.8'}});
     if(!response.ok)throw new Error(`Source request failed ${response.status}`);
-    return await response.text();
+    const text=await response.text();
+    if(!text || !text.includes(',')) throw new Error('Source returned invalid CSV');
+    return text;
   } finally { clearTimeout(timer); }
+}
+
+async function firstAvailable(urls) {
+  let lastError;
+  for (const url of urls) {
+    try { return { url, text: await getText(url) }; }
+    catch (error) { lastError = error; }
+  }
+  throw lastError || new Error('No data source available');
 }
 
 function fantasyPoints(row, scoring) {
@@ -73,36 +84,43 @@ function rookieBase(position) {
 }
 
 async function loadRoster() {
-  const current=`https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_${CURRENT_SEASON}.csv`;
-  try { return { season:CURRENT_SEASON, text:await getText(current) }; }
-  catch (firstError) {
-    const prior=CURRENT_SEASON-1;
-    const fallback=`https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_${prior}.csv`;
-    return { season:prior, text:await getText(fallback) };
+  const seasons=[CURRENT_SEASON,CURRENT_SEASON-1];
+  let lastError;
+  for(const season of seasons){
+    try{
+      const url=`https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_${season}.csv`;
+      const source=await firstAvailable([url]);
+      return {season,text:source.text,url:source.url};
+    }catch(error){lastError=error;}
   }
+  throw lastError || new Error('Roster data unavailable');
 }
 
 async function loadStats() {
   const preferred=PRESEASON?CURRENT_SEASON-1:CURRENT_SEASON;
-  const preferredUrl=`https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${preferred}.csv`;
-  try{
-    const text=await getText(preferredUrl);
-    if(!PRESEASON && !(text.includes(',REG,')||text.includes(',REG\r')||text.includes(',REG\n')))throw new Error('No regular season rows yet');
-    return { season:preferred, text };
-  } catch (firstError) {
-    const prior=CURRENT_SEASON-1;
-    if(preferred===prior)throw firstError;
-    const url=`https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${prior}.csv`;
-    return { season:prior, text:await getText(url) };
+  const seasons=[preferred,...(preferred!==CURRENT_SEASON-1?[CURRENT_SEASON-1]:[])];
+  let lastError;
+  for(const season of seasons){
+    try{
+      // nflverse's current release tag is player_stats. Keep the former stats_player tag
+      // as a compatibility fallback so a future upstream rename does not blank the app.
+      const source=await firstAvailable([
+        `https://github.com/nflverse/nflverse-data/releases/download/player_stats/stats_player_week_${season}.csv`,
+        `https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${season}.csv`
+      ]);
+      if(!PRESEASON && season===CURRENT_SEASON && !(source.text.includes(',REG,')||source.text.includes(',REG\r')||source.text.includes(',REG\n'))){
+        throw new Error('No regular-season rows yet');
+      }
+      return {season,text:source.text,url:source.url};
+    }catch(error){lastError=error;}
   }
+  throw lastError || new Error('Player stats data unavailable');
 }
 
 async function buildPayload(scoring) {
   const hit=cache.get(scoring);
   if(hit&&hit.expires>Date.now())return hit.payload;
 
-  // Only two source downloads are required. This avoids the old cold-start timeout caused by
-  // downloading the large players metadata file and probing an unavailable preseason stat file.
   const [rosterSource,statsSource]=await Promise.all([loadRoster(),loadStats()]);
 
   const rosterRows=csvRows(rosterSource.text,['team','position','status','full_name','gsis_id','years_exp','headshot_url']);
@@ -111,6 +129,9 @@ async function buildPayload(scoring) {
     'carries','rushing_yards','rushing_tds','targets','receptions','receiving_yards','receiving_tds',
     'receiving_2pt_conversions','rushing_2pt_conversions','passing_2pt_conversions','fumbles_lost'
   ]);
+
+  if(!rosterRows.length) throw new Error('Roster CSV contained no rows');
+  if(!statRows.length) throw new Error('Player stats CSV contained no rows');
 
   const active=new Map();
   for(const row of rosterRows){
@@ -167,6 +188,8 @@ async function buildPayload(scoring) {
     const score=p=>p.metrics.production*.42+p.metrics.opportunity*.24+p.metrics.ceiling*.14+p.metrics.consistency*.1+p.metrics.availability*.1;
     return score(b)-score(a);
   }).slice(0,300);
+
+  if(!sorted.length) throw new Error('No active fantasy players were produced');
 
   const payload={
     generatedAt:new Date().toISOString(),currentSeason:CURRENT_SEASON,statsSeason:statsSource.season,scoring,
