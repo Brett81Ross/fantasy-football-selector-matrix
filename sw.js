@@ -1,7 +1,7 @@
-const CACHE='ff-matrix-v1.3.2';
+const CACHE='ff-matrix-v1.3.2-hotfix1';
 const CORE=['/','/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/vorp.js','/icons/icon-192.png','/icons/favicon-96.png','/icons/ffm-mark.svg'];
-const FAST_SCRIPT='<script src="/fast-draft.js?v=1.3.0"></script>';
-const ROSTER_SCRIPT='<script src="/roster-needs.js?v=1.3.1"></script>';
+const FAST_SCRIPT='<script src="/fast-draft.js?v=1.3.2"></script>';
+const ROSTER_SCRIPT='<script src="/roster-needs.js?v=1.3.2"></script>';
 const VORP_SCRIPT='<script src="/vorp.js?v=1.3.2"></script>';
 
 self.addEventListener('install',event=>{
@@ -13,6 +13,10 @@ self.addEventListener('activate',event=>{
     caches.keys()
       .then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))
       .then(()=>self.clients.claim())
+      .then(()=>self.clients.matchAll({type:'window',includeUncontrolled:true}))
+      .then(clients=>Promise.all(clients.map(client=>{
+        try{return client.navigate(client.url)}catch(_){return null}
+      })))
   );
 });
 

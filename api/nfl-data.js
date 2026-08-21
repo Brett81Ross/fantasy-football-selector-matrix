@@ -59,13 +59,30 @@ function csvRows(text, wanted) {
   return rows;
 }
 
-async function getText(url) {
-  const response = await fetch(url, {
-    headers: { 'User-Agent': 'Fantasy-Football-Selector-Matrix/1.1' },
-    redirect: 'follow'
-  });
-  if (!response.ok) throw new Error(`Source request failed (${response.status})`);
-  return response.text();
+async function getText(url, attempts = 3) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Fantasy-Football-Selector-Matrix/1.3.2',
+          'Accept': 'text/csv,text/plain;q=0.9,*/*;q=0.8'
+        },
+        redirect: 'follow',
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error(`Source request failed (${response.status})`);
+      return await response.text();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) await new Promise(resolve => setTimeout(resolve, attempt * 350));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastError || new Error('Source request failed');
 }
 
 function fantasyPoints(row, scoring) {
@@ -147,7 +164,21 @@ async function loadSource(scoring) {
   const currentStatsUrl = `https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${CURRENT_SEASON}.csv`;
   const previousStatsUrl = `https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${CURRENT_SEASON - 1}.csv`;
 
-  const [rosterText, playersText] = await Promise.all([getText(rosterUrl), getText(playersUrl)]);
+  let rosterText = '';
+  let rosterSeason = CURRENT_SEASON;
+  try {
+    rosterText = await getText(rosterUrl);
+  } catch (error) {
+    rosterSeason = CURRENT_SEASON - 1;
+    rosterText = await getText(`https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_${rosterSeason}.csv`);
+  }
+
+  let playersText = '';
+  try {
+    playersText = await getText(playersUrl);
+  } catch (error) {
+    console.warn('players metadata unavailable; continuing with roster names', error);
+  }
 
   let statsText = '';
   let statsSeason = CURRENT_SEASON;
@@ -321,9 +352,9 @@ async function loadSource(scoring) {
     source: {
       name: 'nflverse',
       license: 'CC BY 4.0',
-      note: statsSeason === CURRENT_SEASON
+      note: statsSeason === CURRENT_SEASON && rosterSeason === CURRENT_SEASON
         ? `${CURRENT_SEASON} regular-season data`
-        : `${CURRENT_SEASON} roster + ${statsSeason} regular-season performance baseline`
+        : `${rosterSeason} roster + ${statsSeason} regular-season performance baseline`
     },
     players: sorted
   };
