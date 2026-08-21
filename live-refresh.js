@@ -1,8 +1,20 @@
 (() => {
   'use strict';
-  const VERSION='1.4.1';
+  const VERSION='1.4.2';
   const POLL_MS=20000;
+  const VERSION_KEY='ffm-app-version';
   let busy=false;
+
+  try{
+    const previous=localStorage.getItem(VERSION_KEY);
+    if(previous!==VERSION){
+      for(let i=localStorage.length-1;i>=0;i--){
+        const key=localStorage.key(i);
+        if(key&&key.startsWith('ffm-fast-data:'))localStorage.removeItem(key);
+      }
+      localStorage.setItem(VERSION_KEY,VERSION);
+    }
+  }catch(_){}
 
   function scoring(){
     try{return (typeof state!=='undefined'&&state.scoring)||document.getElementById('scoring')?.value||'ppr';}catch(_){return 'ppr';}
@@ -24,6 +36,7 @@
       if(typeof state!=='undefined'){
         const drafted=state.drafted;const compare=state.compare;
         state.players=data.players;
+        state.dataMeta=data;
         if(drafted)state.drafted=drafted;if(compare)state.compare=compare;
         if(typeof renderAll==='function')renderAll();
       }
@@ -32,15 +45,20 @@
       const note=document.getElementById('draftSourceNote');if(note)note.textContent=data.source?.note||'ESPN public NFL player engine online.';
       window.__FFM_LAST_LIVE_UPDATE__=data.generatedAt;
       window.__FFM_DATA_HEALTH__=data.health||{};
+      window.__FFM_DATA_ERROR__='';
     }catch(e){
       const hasPlayers=typeof state!=='undefined'&&Array.isArray(state.players)&&state.players.length>0;
       status(hasPlayers?'NFL DATA DEGRADED · using last good update':'Football data unavailable',!hasPlayers);
       window.__FFM_DATA_ERROR__=String(e?.message||e);
     }finally{busy=false;}
   }
-  window.addEventListener('focus',refresh);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
-  setTimeout(refresh,500);
+  async function checkForAppUpdate(){
+    if(!('serviceWorker' in navigator))return;
+    try{const reg=await navigator.serviceWorker.getRegistration();if(reg)await reg.update();}catch(_){}
+  }
+  window.addEventListener('focus',()=>{checkForAppUpdate();refresh();});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForAppUpdate();refresh();}});
+  setTimeout(()=>{checkForAppUpdate();refresh();},500);
   setInterval(refresh,POLL_MS);
 
   document.querySelectorAll('.brand small').forEach(el=>{el.textContent=el.textContent.replace(/v\d+\.\d+\.\d+/,`v${VERSION}`);});
