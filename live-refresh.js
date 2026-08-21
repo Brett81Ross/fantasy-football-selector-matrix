@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION='1.4.3';
+  const VERSION='1.4.4';
   const POLL_MS=20000;
   const VERSION_KEY='ffm-app-version';
   let busy=false;
@@ -12,6 +12,7 @@
         const key=localStorage.key(i);
         if(key&&key.startsWith('ffm-fast-data:'))localStorage.removeItem(key);
       }
+      localStorage.removeItem('ffm-te-data-v1.4.4');
       localStorage.setItem(VERSION_KEY,VERSION);
     }
   }catch(_){}
