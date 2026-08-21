@@ -1,10 +1,10 @@
-# Fantasy Football Selector Matrix™
+# Fantasy Football Matrix™
 
-Version **1.1.0** — Cactus🌵Byte Studios™
+Version **1.2.1** — Cactus🌵Byte Studios™
 
 A mobile-first fantasy football decision engine designed to answer one question fast: **what is the smartest move I can make right now?**
 
-## v1.1.0
+## v1.2.1
 
 - Real NFL roster and player-performance data through the Matrix server-side data engine
 - PPR, Half-PPR, and Standard fantasy scoring calculated from raw weekly statistics
@@ -16,7 +16,7 @@ A mobile-first fantasy football decision engine designed to answer one question 
 - Direct head-to-head player comparison
 - Waiver Watch Matrix based on opportunity, trend, and ceiling
 - Trade Matrix player-profile comparison
-- Data-source and season status shown directly in the app
+- Fast Draft runtime with cached data, one-tap drafted marking, a persistent best-pick dock, and undo
 - Android/iOS-friendly responsive PWA shell
 - Native sharing plus branded Matrix QR
 - Settings, visible version number, and Cactus🌵Byte Studios™ footer
@@ -27,4 +27,4 @@ The app uses current NFL roster data and the latest available regular-season pla
 
 The Matrix score itself is calculated by this app. The raw football data feed is provided by **nflverse** under **CC BY 4.0**. Matrix estimates such as Next-Pick Survival™ are labeled as Matrix estimates and are not represented as live market ADP.
 
-Fantasy Football Selector Matrix™ · Cactus🌵Byte Studios™ · All Rights Reserved
+Fantasy Football Matrix™ · Cactus🌵Byte Studios™ · All Rights Reserved
