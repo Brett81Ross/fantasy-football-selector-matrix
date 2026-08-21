@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.3.7';
+  const VERSION = '1.4.0';
   const SHIELD = '/icons/ffm-user-logo.svg';
 
   function applyBranding() {
@@ -10,8 +10,8 @@
       .top{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:12px!important;padding-top:4px!important}
       .brand{display:block!important;min-width:0!important;width:100%!important}
       .brand-lockup{display:grid!important;grid-template-columns:76px minmax(0,1fr)!important;align-items:center!important;gap:14px!important;min-width:0!important;width:100%!important}
-      .brand-shield-wrap{width:76px;height:76px;display:grid;place-items:center;overflow:hidden;background:transparent!important;filter:drop-shadow(0 0 5px rgba(140,255,25,.95)) drop-shadow(0 0 13px rgba(140,255,25,.58))}
-      .brand-shield{width:92px!important;height:92px!important;display:block!important;object-fit:cover!important;clip-path:polygon(50% 2%,93% 17%,88% 65%,50% 98%,12% 65%,7% 17%)!important}
+      .brand-shield-wrap{width:76px;height:76px;display:grid;place-items:center;overflow:visible;background:transparent!important;filter:drop-shadow(0 0 6px rgba(140,255,25,.95)) drop-shadow(0 0 16px rgba(140,255,25,.55))}
+      .brand-shield{width:76px!important;height:76px!important;display:block!important;object-fit:cover!important;transform:scale(1.12)!important;clip-path:polygon(50% 1%,88% 8%,97% 21%,97% 58%,89% 70%,78% 84%,50% 99%,22% 84%,11% 70%,3% 58%,3% 21%,12% 8%)!important}
       .brand-copy{position:relative!important;min-width:0!important;padding:10px 0 9px!important;font-family:Impact,'Arial Black',Arial,sans-serif!important;font-style:italic!important;font-weight:900!important;line-height:.83!important;letter-spacing:.01em!important;text-transform:uppercase!important}
       .brand-copy:before,.brand-copy:after{content:'';position:absolute;left:0;right:3%;height:1px;background:linear-gradient(90deg,rgba(123,255,0,0),rgba(123,255,0,.8) 18%,rgba(123,255,0,.18) 88%,rgba(123,255,0,0));box-shadow:0 0 7px rgba(123,255,0,.45)}
       .brand-copy:before{top:0}.brand-copy:after{bottom:0}
@@ -23,12 +23,12 @@
       .qrbadge{padding:0!important;overflow:hidden!important;background:#07100c!important;border-color:#fff!important}
       .qrbadge img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;border-radius:8px!important}
       @media(max-width:640px){
-        .top{gap:8px!important}.brand-lockup{grid-template-columns:58px minmax(0,1fr)!important;gap:9px!important}.brand-shield-wrap{width:58px;height:58px}.brand-shield{width:70px!important;height:70px!important}
+        .top{gap:8px!important}.brand-lockup{grid-template-columns:58px minmax(0,1fr)!important;gap:9px!important}.brand-shield-wrap{width:58px;height:58px}.brand-shield{width:58px!important;height:58px!important}
         .brand-copy{padding:8px 0 7px!important}.brand-copy .bw1,.brand-copy .bw2{font-size:17px!important}.brand-copy .bw3{font-size:21px!important;margin-top:3px!important}.brand-version{font-size:8px!important;margin-top:6px!important}
         .actions{gap:5px!important}.iconbtn{min-width:40px!important;padding:0 9px!important}
       }
       @media(max-width:430px){
-        .brand-lockup{grid-template-columns:50px minmax(0,1fr)!important;gap:7px!important}.brand-shield-wrap{width:50px;height:50px}.brand-shield{width:61px!important;height:61px!important}
+        .brand-lockup{grid-template-columns:50px minmax(0,1fr)!important;gap:7px!important}.brand-shield-wrap{width:50px;height:50px}.brand-shield{width:50px!important;height:50px!important}
         .brand-copy .bw1,.brand-copy .bw2{font-size:14px!important}.brand-copy .bw3{font-size:18px!important}.brand-version{font-size:7px!important}.brand-copy:before,.brand-copy:after{right:0}
       }
     `;
