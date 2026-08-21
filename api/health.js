@@ -1,7 +1,7 @@
 module.exports = function handler(req, res) {
   res.status(200).json({
-    app: 'Fantasy Football Selector Matrix',
-    version: '1.2.0',
+    app: 'Fantasy Football Matrix',
+    version: '1.2.1',
     status: 'ok'
   });
 };
