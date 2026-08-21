@@ -12,6 +12,9 @@ module.exports = async function handler(req, res) {
       .replaceAll('Fantasy Football Selector Matrix™', 'Fantasy Football Matrix™')
       .replaceAll('Fantasy Football Selector Matrix', 'Fantasy Football Matrix');
 
+    const canonicalUrl = 'https://fantasy-football-selector-matrix-brett-ross-projects1.vercel.app/';
+    const shareImage = 'https://fantasy-football-selector-matrix-brett-ross-projects1.vercel.app/icons/ffm-logo-512.png';
+
     const iosHead = `
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Fantasy Football Matrix" />
@@ -19,6 +22,19 @@ module.exports = async function handler(req, res) {
 <meta name="format-detection" content="telephone=no" />
 <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 <link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon-96.png" />
+<link rel="canonical" href="${canonicalUrl}" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="${canonicalUrl}" />
+<meta property="og:image" content="${shareImage}" />
+<meta property="og:image:secure_url" content="${shareImage}" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="512" />
+<meta property="og:image:height" content="512" />
+<meta property="og:image:alt" content="Fantasy Football Matrix FFM shield logo" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Fantasy Football Matrix™" />
+<meta name="twitter:description" content="Make the smarter fantasy football move with the Matrix Selection Score™." />
+<meta name="twitter:image" content="${shareImage}" />
 <style>
 :root{--accent:#39ff14;--accent2:#9cff35}
 .mark{padding:0!important;overflow:hidden!important;border-color:#39ff14!important;background:#07100c!important;box-shadow:0 0 18px rgba(57,255,20,.18)}
@@ -29,16 +45,16 @@ module.exports = async function handler(req, res) {
     html = html.replace('</head>', `${iosHead}\n</head>`);
 
     if (!html.includes('/fast-draft.js')) {
-      html = html.replace('</body>', '<script src="/fast-draft.js?v=1.3.0"></script>\n</body>');
+      html = html.replace('</body>', '<script src="/fast-draft.js?v=1.4.4"></script>\n</body>');
     }
 
     const brandScript = `
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
   document.title='Fantasy Football Matrix™';
-  document.querySelectorAll('.brand small').forEach(el=>{el.textContent=el.textContent.replace(/v\\d+\\.\\d+\\.\\d+/, 'v1.3.0')});
+  document.querySelectorAll('.brand small').forEach(el=>{el.textContent=el.textContent.replace(/v\\d+\\.\\d+\\.\\d+/, 'v1.4.4')});
   const footer=document.querySelector('footer');
-  if(footer) footer.innerHTML=footer.innerHTML.replace(/v\\d+\\.\\d+\\.\\d+/, 'v1.3.0');
+  if(footer) footer.innerHTML=footer.innerHTML.replace(/v\\d+\\.\\d+\\.\\d+/, 'v1.4.4');
   const mark=document.querySelector('.mark');
   if(mark){mark.innerHTML='<img src="/icons/icon-192.png" alt="FFM shield" />';mark.setAttribute('aria-label','Fantasy Football Matrix logo')}
 });
