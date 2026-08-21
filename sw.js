@@ -1,6 +1,6 @@
-const VERSION='1.4.2';
+const VERSION='1.4.3';
 const CACHE=`ff-matrix-v${VERSION}`;
-const CORE=['/','/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/live-refresh.js','/icons/ffm-user-logo.svg','/icons/favicon-96.png'];
+const CORE=['/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/live-refresh.js','/icons/ffm-user-logo.svg','/icons/favicon-96.png'];
 const FAST_SCRIPT=`<script src="/fast-draft.js?v=${VERSION}"></script>`;
 const ROSTER_SCRIPT=`<script src="/roster-needs.js?v=${VERSION}"></script>`;
 const VORP_SCRIPT=`<script src="/vorp.js?v=${VERSION}"></script>`;
@@ -25,10 +25,6 @@ self.addEventListener('activate',event=>{
     const keys=await caches.keys();
     await Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)));
     await self.clients.claim();
-    const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    await Promise.all(clients.map(client=>{
-      try{return client.navigate(client.url)}catch(_){return null}
-    }));
   })());
 });
 
@@ -44,35 +40,48 @@ async function injectRuntime(response){
   if(!html.includes('/brand-integration.js'))html=html.replace('</body>',BRAND_SCRIPT+'\n</body>');
   if(!html.includes('/live-refresh.js'))html=html.replace('</body>',LIVE_SCRIPT+'\n</body>');
   const headers=new Headers(response.headers);
-  headers.delete('content-length');headers.delete('content-encoding');
+  headers.delete('content-length');
+  headers.delete('content-encoding');
   headers.set('x-ffm-runtime',VERSION);
   headers.set('cache-control','no-cache');
-  return new Response(html,{status:response.status,statusText:response.statusText,headers});
+  return new Response(html,{status:200,statusText:'OK',headers});
 }
 
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
   const url=new URL(event.request.url);
+
   if(url.pathname.startsWith('/api/')){
     event.respondWith(fetch(event.request,{cache:'no-store'}));
     return;
   }
+
   if(event.request.mode==='navigate'||url.pathname==='/'||url.pathname==='/index.html'){
     event.respondWith((async()=>{
+      const cache=await caches.open(CACHE);
       try{
-        const response=await fetch(event.request,{cache:'no-store'});
+        const response=await fetch('/index.html',{cache:'no-store'});
+        if(!response.ok)throw new Error(`index ${response.status}`);
         const injected=await injectRuntime(response);
-        if(injected){const copy=injected.clone();const cache=await caches.open(CACHE);await cache.put('/index.html',copy);}
+        if(injected?.ok)await cache.put('/index.html',injected.clone());
         return injected;
-      }catch(_){return caches.match('/index.html')}
+      }catch(_){
+        const cached=await cache.match('/index.html');
+        if(cached)return cached;
+        return new Response('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="margin:0;background:#07100c;color:#f3f7f4;font:16px system-ui;padding:24px"><h2>Fantasy Football Matrix™</h2><p>Connection unavailable. Reopen the app when you are online.</p></body>',{status:503,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+      }
     })());
     return;
   }
+
   event.respondWith((async()=>{
+    const cache=await caches.open(CACHE);
     try{
       const response=await fetch(event.request,{cache:'no-cache'});
-      if(response.ok){const cache=await caches.open(CACHE);await cache.put(event.request,response.clone());}
+      if(response.ok)await cache.put(event.request,response.clone());
       return response;
-    }catch(_){return caches.match(event.request)}
+    }catch(_){
+      return (await cache.match(event.request))||Response.error();
+    }
   })());
 });
