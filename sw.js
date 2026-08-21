@@ -1,12 +1,13 @@
-const VERSION='1.4.3';
+const VERSION='1.4.4';
 const CACHE=`ff-matrix-v${VERSION}`;
-const CORE=['/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/live-refresh.js','/icons/ffm-user-logo.svg','/icons/favicon-96.png'];
+const CORE=['/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/live-refresh.js','/te-fix.js','/icons/ffm-user-logo.svg','/icons/favicon-96.png'];
 const FAST_SCRIPT=`<script src="/fast-draft.js?v=${VERSION}"></script>`;
 const ROSTER_SCRIPT=`<script src="/roster-needs.js?v=${VERSION}"></script>`;
 const VORP_SCRIPT=`<script src="/vorp.js?v=${VERSION}"></script>`;
 const TIER_SCRIPT=`<script src="/tier-cliffs.js?v=${VERSION}"></script>`;
 const BRAND_SCRIPT=`<script src="/brand-integration.js?v=${VERSION}"></script>`;
 const LIVE_SCRIPT=`<script src="/live-refresh.js?v=${VERSION}"></script>`;
+const TE_FIX_SCRIPT=`<script src="/te-fix.js?v=${VERSION}"></script>`;
 
 async function primeCache(){
   const cache=await caches.open(CACHE);
@@ -39,6 +40,7 @@ async function injectRuntime(response){
   if(!html.includes('/tier-cliffs.js'))html=html.replace('</body>',TIER_SCRIPT+'\n</body>');
   if(!html.includes('/brand-integration.js'))html=html.replace('</body>',BRAND_SCRIPT+'\n</body>');
   if(!html.includes('/live-refresh.js'))html=html.replace('</body>',LIVE_SCRIPT+'\n</body>');
+  if(!html.includes('/te-fix.js'))html=html.replace('</body>',TE_FIX_SCRIPT+'\n</body>');
   const headers=new Headers(response.headers);
   headers.delete('content-length');
   headers.delete('content-encoding');
