@@ -1,7 +1,7 @@
 (() => {
   'use strict';
-  const VERSION='1.4.0';
-  const POLL_MS=30000;
+  const VERSION='1.4.1';
+  const POLL_MS=20000;
   let busy=false;
 
   function scoring(){
@@ -18,27 +18,29 @@
     if(busy||document.hidden)return;busy=true;
     try{
       const r=await fetch(`/api/nfl-live?scoring=${encodeURIComponent(scoring())}&t=${Date.now()}`,{cache:'no-store'});
-      if(!r.ok)throw new Error(`HTTP ${r.status}`);
-      const data=await r.json();
-      if(!Array.isArray(data.players)||data.players.length<50)throw new Error('Player payload incomplete');
+      const data=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(data.detail||`HTTP ${r.status}`);
+      if(!Array.isArray(data.players)||data.players.length<100)throw new Error('Player payload incomplete');
       if(typeof state!=='undefined'){
         const drafted=state.drafted;const compare=state.compare;
         state.players=data.players;
         if(drafted)state.drafted=drafted;if(compare)state.compare=compare;
         if(typeof renderAll==='function')renderAll();
       }
-      const live=Number(data.liveGames||0);
-      status(live?`LIVE NFL DATA · ${live} game${live===1?'':'s'} active`:'NFL DATA ONLINE · awaiting live games',false,`${data.currentSeason} · ${data.source?.name||'ESPN'}`);
-      const note=document.getElementById('draftSourceNote');if(note)note.textContent=data.source?.note||'ESPN player engine online.';
+      const live=Number(data.liveGames||0);const teams=Number(data.health?.teamsLoaded||0);const fallback=!!data.source?.fallback;
+      status(live?`LIVE NFL DATA · ${live} game${live===1?'':'s'} active`:fallback?'NFL DATA ONLINE · backup source active':'NFL DATA ONLINE · ESPN connected',false,`${data.currentSeason} · ${teams||32}/32 teams`);
+      const note=document.getElementById('draftSourceNote');if(note)note.textContent=data.source?.note||'ESPN public NFL player engine online.';
       window.__FFM_LAST_LIVE_UPDATE__=data.generatedAt;
+      window.__FFM_DATA_HEALTH__=data.health||{};
     }catch(e){
       const hasPlayers=typeof state!=='undefined'&&Array.isArray(state.players)&&state.players.length>0;
       status(hasPlayers?'NFL DATA DEGRADED · using last good update':'Football data unavailable',!hasPlayers);
+      window.__FFM_DATA_ERROR__=String(e?.message||e);
     }finally{busy=false;}
   }
   window.addEventListener('focus',refresh);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
-  setTimeout(refresh,1200);
+  setTimeout(refresh,500);
   setInterval(refresh,POLL_MS);
 
   document.querySelectorAll('.brand small').forEach(el=>{el.textContent=el.textContent.replace(/v\d+\.\d+\.\d+/,`v${VERSION}`);});
