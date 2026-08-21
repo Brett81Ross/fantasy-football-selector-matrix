@@ -1,7 +1,8 @@
-const CACHE='ff-matrix-v1.3.1';
-const CORE=['/','/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/icons/icon-192.png','/icons/favicon-96.png','/icons/ffm-mark.svg'];
+const CACHE='ff-matrix-v1.3.2';
+const CORE=['/','/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/vorp.js','/icons/icon-192.png','/icons/favicon-96.png','/icons/ffm-mark.svg'];
 const FAST_SCRIPT='<script src="/fast-draft.js?v=1.3.0"></script>';
 const ROSTER_SCRIPT='<script src="/roster-needs.js?v=1.3.1"></script>';
+const VORP_SCRIPT='<script src="/vorp.js?v=1.3.2"></script>';
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()));
@@ -22,10 +23,11 @@ function ensureFastDraft(response){
   return response.text().then(html=>{
     if(!html.includes('/fast-draft.js')) html=html.replace('</body>',FAST_SCRIPT+'\n</body>');
     if(!html.includes('/roster-needs.js')) html=html.replace('</body>',ROSTER_SCRIPT+'\n</body>');
+    if(!html.includes('/vorp.js')) html=html.replace('</body>',VORP_SCRIPT+'\n</body>');
     const headers=new Headers(response.headers);
     headers.delete('content-length');
     headers.delete('content-encoding');
-    headers.set('x-ffm-runtime','1.3.1');
+    headers.set('x-ffm-runtime','1.3.2');
     return new Response(html,{status:response.status,statusText:response.statusText,headers});
   });
 }
