@@ -1,10 +1,31 @@
 {
   "name": "Fantasy Football Matrix™",
   "short_name": "FF Matrix",
-  "description": "A fast fantasy football decision engine for drafts, start/sit choices, waivers, and trades.",
+  "description": "A fast fantasy football decision engine for drafts, player comparisons, waivers, and trades.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#07100c",
   "theme_color": "#07100c",
-  "orientation": "portrait-primary"
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/ffm-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/ffm-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
 }
