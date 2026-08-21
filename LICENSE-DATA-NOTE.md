@@ -1,0 +1,1 @@
+Raw NFL data consumed by the app is provided by nflverse under CC BY 4.0. This repository's application code, branding, Matrix metric names, and scoring/decision logic are separate from the raw data license.

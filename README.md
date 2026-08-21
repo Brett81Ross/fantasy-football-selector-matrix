@@ -1,24 +1,30 @@
 # Fantasy Football Selector Matrix™
 
-Version **1.0.0** — Cactus🌵Byte Studios™
+Version **1.1.0** — Cactus🌵Byte Studios™
 
 A mobile-first fantasy football decision engine designed to answer one question fast: **what is the smartest move I can make right now?**
 
-## v1.0.0 prototype
+## v1.1.0
 
-- Draft Matrix with Matrix Selection Score™
-- Start / Sit comparison engine
-- Waiver Matrix with True Opportunity Value™ concept
-- Trade Matrix prototype
-- Matrix Volatility Index™ risk/upside visualization
-- PPR, Half-PPR, Standard, league-size, risk, and lineup settings
-- Android/iOS-friendly responsive layout
-- PWA manifest and offline shell
-- Native mobile sharing plus branded Matrix QR
-- Visible app version and Cactus🌵Byte Studios™ footer
+- Real NFL roster and player-performance data through the Matrix server-side data engine
+- PPR, Half-PPR, and Standard fantasy scoring calculated from raw weekly statistics
+- Matrix Selection Score™ derived from production, opportunity, consistency, ceiling, trend, availability, positional scarcity, draft round, and user risk preference
+- True Opportunity Value™ (TOV™) derived from weighted touches, targets, and high-value scoring opportunities
+- Matrix Volatility Index™ (MVI™) based on week-to-week scoring variation
+- Draft board with search, position filters, drafted-player removal, and dynamic recommendations
+- Multi-player Draft Compare for up to four players
+- Direct head-to-head player comparison
+- Waiver Watch Matrix based on opportunity, trend, and ceiling
+- Trade Matrix player-profile comparison
+- Data-source and season status shown directly in the app
+- Android/iOS-friendly responsive PWA shell
+- Native sharing plus branded Matrix QR
+- Settings, visible version number, and Cactus🌵Byte Studios™ footer
 
-## Data status
+## Data methodology
 
-The first build intentionally uses a clearly marked prototype dataset so the scoring engine and UX can be tested before a live 2026 NFL data provider is selected. The next data phase will replace demo inputs with live player, injury, usage, matchup, and projection feeds while keeping proprietary Matrix calculations separate.
+The app uses current NFL roster data and the latest available regular-season player statistics. During the preseason, when the current regular season has not started, the engine uses the current roster together with the previous regular season as a performance baseline. Rookies without NFL regular-season history receive a separate draft-capital baseline instead of invented performance numbers.
+
+The Matrix score itself is calculated by this app. The raw football data feed is provided by **nflverse** under **CC BY 4.0**. Matrix estimates such as Next-Pick Survival™ are labeled as Matrix estimates and are not represented as live market ADP.
 
 Fantasy Football Selector Matrix™ · Cactus🌵Byte Studios™ · All Rights Reserved
