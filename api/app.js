@@ -1,3 +1,5 @@
+const VERSION='1.4.5';
+
 module.exports = async function handler(req, res) {
   try {
     const proto = req.headers['x-forwarded-proto'] || 'https';
@@ -15,13 +17,18 @@ module.exports = async function handler(req, res) {
     const canonicalUrl = 'https://fantasy-football-selector-matrix-brett-ross-projects1.vercel.app/';
     const shareImage = 'https://fantasy-football-selector-matrix-brett-ross-projects1.vercel.app/icons/ffm-logo-512.png';
 
-    const iosHead = `
+    const launchHead = `
+<meta name="application-name" content="Fantasy Football Matrix" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Fantasy Football Matrix" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="format-detection" content="telephone=no" />
-<link rel="apple-touch-icon" href="/icons/icon-192.png" />
-<link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon-96.png" />
+<meta name="msapplication-TileColor" content="#07100c" />
+<meta name="msapplication-TileImage" content="/icons/icon-192.png" />
+<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png?v=${VERSION}" />
+<link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon-96.png?v=${VERSION}" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png?v=${VERSION}" />
+<link rel="shortcut icon" href="/icons/favicon-96.png?v=${VERSION}" />
 <link rel="canonical" href="${canonicalUrl}" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${canonicalUrl}" />
@@ -42,27 +49,31 @@ module.exports = async function handler(req, res) {
 .hero{border-color:rgba(57,255,20,.28)!important}
 .tab.active{box-shadow:0 0 18px rgba(57,255,20,.16)}
 </style>`;
-    html = html.replace('</head>', `${iosHead}\n</head>`);
+    html = html.replace('</head>', `${launchHead}\n</head>`);
+
+    if (!html.includes('/splash.js')) {
+      html = html.replace('<body>', `<body>\n<script src="/splash.js?v=${VERSION}"></script>`);
+    }
 
     if (!html.includes('/fast-draft.js')) {
-      html = html.replace('</body>', '<script src="/fast-draft.js?v=1.4.4"></script>\n</body>');
+      html = html.replace('</body>', `<script src="/fast-draft.js?v=${VERSION}"></script>\n</body>`);
     }
 
     const brandScript = `
 <script>
 window.addEventListener('DOMContentLoaded',()=>{
   document.title='Fantasy Football Matrix™';
-  document.querySelectorAll('.brand small').forEach(el=>{el.textContent=el.textContent.replace(/v\\d+\\.\\d+\\.\\d+/, 'v1.4.4')});
+  document.querySelectorAll('.brand small').forEach(el=>{el.textContent=el.textContent.replace(/v\\d+\\.\\d+\\.\\d+/, 'v${VERSION}')});
   const footer=document.querySelector('footer');
-  if(footer) footer.innerHTML=footer.innerHTML.replace(/v\\d+\\.\\d+\\.\\d+/, 'v1.4.4');
+  if(footer) footer.innerHTML=footer.innerHTML.replace(/v\\d+\\.\\d+\\.\\d+/, 'v${VERSION}');
   const mark=document.querySelector('.mark');
-  if(mark){mark.innerHTML='<img src="/icons/icon-192.png" alt="FFM shield" />';mark.setAttribute('aria-label','Fantasy Football Matrix logo')}
+  if(mark){mark.innerHTML='<img src="/icons/icon-192.png?v=${VERSION}" alt="FFM shield" />';mark.setAttribute('aria-label','Fantasy Football Matrix logo')}
 });
 </script>`;
     html = html.replace('</body>', `${brandScript}\n</body>`);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     res.status(200).send(html);
   } catch (error) {
     console.error('app shell error', error);
