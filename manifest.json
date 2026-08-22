@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Fantasy Football Matrix™",
   "short_name": "FF Matrix",
   "description": "A fast fantasy football decision engine for drafts, player comparisons, waivers, and trades.",
@@ -10,9 +11,15 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/ffm-user-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/ffm-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     },
     {
