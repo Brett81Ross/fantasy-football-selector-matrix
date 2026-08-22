@@ -1,6 +1,7 @@
-const VERSION='1.4.4';
+const VERSION='1.4.5';
 const CACHE=`ff-matrix-v${VERSION}`;
-const CORE=['/index.html','/manifest.json','/fast-draft.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/live-refresh.js','/te-fix.js','/icons/ffm-user-logo.svg','/icons/favicon-96.png'];
+const CORE=['/index.html','/manifest.json','/splash.js','/fast-draft.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/live-refresh.js','/te-fix.js','/icons/cactus-byte-studios.svg','/icons/ffm-user-logo.svg','/icons/ffm-logo-512.png','/icons/icon-192.png','/icons/favicon-96.png'];
+const SPLASH_SCRIPT=`<script src="/splash.js?v=${VERSION}"></script>`;
 const FAST_SCRIPT=`<script src="/fast-draft.js?v=${VERSION}"></script>`;
 const ROSTER_SCRIPT=`<script src="/roster-needs.js?v=${VERSION}"></script>`;
 const VORP_SCRIPT=`<script src="/vorp.js?v=${VERSION}"></script>`;
@@ -34,6 +35,7 @@ async function injectRuntime(response){
   const type=response.headers.get('content-type')||'';
   if(!type.includes('text/html'))return response;
   let html=await response.text();
+  if(!html.includes('/splash.js'))html=html.replace('<body>','<body>\n'+SPLASH_SCRIPT);
   if(!html.includes('/fast-draft.js'))html=html.replace('</body>',FAST_SCRIPT+'\n</body>');
   if(!html.includes('/roster-needs.js'))html=html.replace('</body>',ROSTER_SCRIPT+'\n</body>');
   if(!html.includes('/vorp.js'))html=html.replace('</body>',VORP_SCRIPT+'\n</body>');
