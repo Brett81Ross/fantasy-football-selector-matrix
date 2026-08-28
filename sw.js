@@ -1,6 +1,6 @@
-const VERSION='1.5.1';
+const VERSION='1.5.2';
 const CACHE=`ff-matrix-v${VERSION}`;
-const CORE=['/manifest.json','/splash.js','/fast-draft.js','/decision-matrix.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/live-refresh.js','/te-fix.js','/version-lock.js','/icons/cactus-byte-studios.svg','/icons/ffm-user-logo.svg','/icons/ffm-logo-512.png','/icons/icon-192.png','/icons/favicon-96.png'];
+const CORE=['/manifest.json','/splash.js','/fast-draft.js','/special-teams.js','/decision-matrix.js','/roster-needs.js','/vorp.js','/tier-cliffs.js','/brand-integration.js','/live-refresh.js','/te-fix.js','/version-lock.js','/icons/cactus-byte-studios.svg','/icons/ffm-user-logo.svg','/icons/ffm-logo-512.png','/icons/icon-192.png','/icons/favicon-96.png'];
 async function primeCache(){const c=await caches.open(CACHE);await Promise.allSettled(CORE.map(async u=>{const r=await fetch(new Request(u,{cache:'reload'}));if(r.ok)await c.put(u,r.clone())}));try{const shell=await fetch('/',{cache:'no-store'});if(shell.ok)await c.put('/app-shell',shell.clone())}catch(_){}}
 self.addEventListener('install',e=>e.waitUntil(primeCache().then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await caches.keys())if(k!==CACHE)await caches.delete(k);await self.clients.claim()})()));
