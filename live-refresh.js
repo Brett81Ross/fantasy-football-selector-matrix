@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION='1.5.1';
+  const VERSION='1.5.4';
   const POLL_MS=20000;
   const VERSION_KEY='ffm-app-version';
   let busy=false;
@@ -34,8 +34,8 @@
         if(typeof renderAll==='function')renderAll();
       }
       const live=Number(data.liveGames||0),teams=Number(data.health?.teamsLoaded||0),partial=teams<32;
-      status(live?`LIVE NFL DATA · ${live} game${live===1?'':'s'} active`:partial?`NFL DATA ONLINE · ${teams}/32 teams loaded`:'NFL DATA ONLINE · ESPN connected',false,`${data.currentSeason} · ${teams}/32 teams`);
-      const note=document.getElementById('draftSourceNote');if(note)note.textContent=data.source?.note||'ESPN public NFL player engine online.';
+      status(live?`LIVE NFL DATA · ${live} game${live===1?'':'s'} active`:partial?`NFL DATA ONLINE · ${teams}/32 teams loaded`:'NFL DATA ONLINE · live sources connected',false,`${data.currentSeason} · ${teams}/32 teams`);
+      const note=document.getElementById('draftSourceNote');if(note)note.textContent=data.source?.note||'Current NFL roster and live scoreboard data online.';
       window.__FFM_LAST_LIVE_UPDATE__=data.generatedAt;window.__FFM_DATA_HEALTH__=data.health||{};window.__FFM_DATA_ERROR__='';
     }catch(e){
       const hasPlayers=typeof state!=='undefined'&&Array.isArray(state.players)&&state.players.length>0;
