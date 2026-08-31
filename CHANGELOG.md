@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.5
+
+- Retired the Fantasy Football Matrix service worker and removed offline app-shell caching from the active application path.
+- Added automatic cleanup for previously registered service workers and old `ff-matrix-*` / fantasy-football caches.
+- Replaced the old worker with a one-release self-retiring tombstone so existing installs can unregister cleanly.
+- Forced the production root through the uncached server-rendered app shell to prevent stale `index.html` builds from bypassing the current version.
+- Added explicit no-store headers to the application shell.
+- Preserved the current live nflverse-backed football data engine and existing runtime features.
+
 ## 1.1.0
 
 - Replaced demo player scoring with a server-side NFL data engine.
