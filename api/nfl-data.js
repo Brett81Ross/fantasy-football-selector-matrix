@@ -1,4 +1,4 @@
-const VERSION='1.5.4';
+const VERSION='1.5.5';
 const NOW=new Date();
 const CURRENT_SEASON=NOW.getUTCMonth()>=2?NOW.getUTCFullYear():NOW.getUTCFullYear()-1;
 const PRESEASON=NOW.getUTCMonth()<8;

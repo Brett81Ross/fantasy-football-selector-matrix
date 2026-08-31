@@ -1,4 +1,4 @@
-const VERSION='1.5.4';
+const VERSION='1.5.5';
 const CURRENT_SEASON=new Date().getUTCMonth()>=2?new Date().getUTCFullYear():new Date().getUTCFullYear()-1;
 
 async function probeHeaders(name,url,timeoutMs=7000){
