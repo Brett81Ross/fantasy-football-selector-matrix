@@ -12,7 +12,6 @@
         "CDN-Cache-Control": "no-store"
       }
     },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/$1" }
+    { "handle": "filesystem" }
   ]
 }
