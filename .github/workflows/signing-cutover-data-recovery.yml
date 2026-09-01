@@ -1,0 +1,65 @@
+name: Fantasy Matrix Signing Cutover Recovery QA
+
+on:
+  push:
+    branches: [android-signing-cutover-data-recovery]
+    paths:
+      - 'api/app.js'
+      - 'fast-draft.js'
+      - 'fantasy-draft-recovery.js'
+      - 'draft-recovery-ui.js'
+      - 'tools/apply-signing-cutover-data-recovery.py'
+      - 'tools/qa-signing-cutover-data-recovery.mjs'
+      - '.github/workflows/signing-cutover-data-recovery.yml'
+      - 'vercel.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  recovery:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v5
+        with:
+          ref: android-signing-cutover-data-recovery
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Apply deterministic active-draft recovery patch
+        run: python tools/apply-signing-cutover-data-recovery.py
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Run active-draft recovery QA
+        run: node tools/qa-signing-cutover-data-recovery.mjs
+      - name: Syntax-check staged JavaScript
+        run: |
+          node --check fantasy-draft-recovery.js
+          node --check draft-recovery-ui.js
+          node --check fast-draft.js
+          node --check api/app.js
+      - name: Verify deployment boundary
+        run: |
+          grep -Eq '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json
+          test ! -d .vercel/output
+          echo 'No Vercel deployment executed by this workflow.'
+      - name: Commit deterministic recovery runtime if needed
+        shell: bash
+        run: |
+          git add api/app.js
+          if git diff --cached --quiet; then
+            echo 'Generated Fantasy active-draft recovery source already settled.'
+            exit 0
+          fi
+          changed="$(git diff --cached --name-only)"
+          test "$changed" = "api/app.js"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'recovery: load Fantasy active-draft backup runtime'
+          git push origin HEAD:android-signing-cutover-data-recovery
