@@ -1,3 +1,4 @@
+# Human-authored trigger for the isolated Fantasy signing-cutover recovery gate.
 name: Fantasy Matrix Signing Cutover Recovery QA
 
 on:
