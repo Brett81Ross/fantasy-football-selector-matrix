@@ -9,7 +9,7 @@
 
   function synchronizeCanonical(next){
     if(!next||typeof next!=='object'||typeof state==='undefined')return;
-    if(state.drafted instanceof Set&&Array.isArray(next.draftedPlayerIds)){
+    if(state.drafted&&typeof state.drafted.clear==='function'&&typeof state.drafted.add==='function'&&Array.isArray(next.draftedPlayerIds)){
       state.drafted.clear();
       next.draftedPlayerIds.forEach(id=>state.drafted.add(id));
       persist(DRAFTED_KEY,next.draftedPlayerIds);
