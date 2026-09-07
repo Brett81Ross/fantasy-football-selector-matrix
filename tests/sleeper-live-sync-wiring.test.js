@@ -29,6 +29,14 @@ test('Sleeper sync publishes canonical state and render bridge refreshes Live Dr
   assert.match(bridge, /renderAll/);
 });
 
+test('canonical bridge synchronizes drafted players and my roster into the legacy Matrix engine', () => {
+  assert.match(bridge, /draftedPlayerIds/);
+  assert.match(bridge, /state\.drafted\.clear/);
+  assert.match(bridge, /ffm-fast-drafted/);
+  assert.match(bridge, /ffm-fast-my-roster/);
+  assert.match(bridge, /picksUntilMyNext/);
+});
+
 test('Sleeper sync exposes connect, league selection, and manual fallback controls', () => {
   assert.match(sync, /Connect Sleeper/);
   assert.match(sync, /sleeperLeague/);
