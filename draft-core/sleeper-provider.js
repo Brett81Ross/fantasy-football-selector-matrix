@@ -23,6 +23,19 @@
     return Number.isInteger(n) && n > 0 ? n : fallback;
   }
 
+  function canonicalTeam(value) {
+    const team = text(value).toUpperCase();
+    return team === 'WAS' ? 'WSH' : team;
+  }
+
+  function normalizeName(value) {
+    return text(value)
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  }
+
   function eligiblePositions(type) {
     switch (type) {
       case 'FLEX': return ['RB', 'WR', 'TE'];
@@ -101,6 +114,35 @@
       return new Map(pool.map(player => [text(player.id), player]));
     }
 
+    function resolveSleeperPlayerId(item) {
+      const rawId = text(item?.player_id);
+      const metadata = item?.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+      const rawPosition = text(metadata.position).toUpperCase();
+      const position = canonicalType(rawPosition);
+      const team = canonicalTeam(metadata.team || rawId);
+
+      if (position === 'DST') return team ? `DST-${team}` : rawId;
+
+      const byId = playerMap();
+      if (byId.has(rawId)) return rawId;
+
+      const sleeperName = normalizeName(`${text(metadata.first_name)} ${text(metadata.last_name)}`);
+      if (!sleeperName) return rawId;
+      const matches = pool.filter(player => normalizeName(player?.name) === sleeperName);
+      if (!matches.length) return rawId;
+      if (matches.length === 1) return text(matches[0].id) || rawId;
+
+      const strict = matches.find(player => {
+        const playerPosition = canonicalType(text(player?.position).toUpperCase());
+        const playerTeam = canonicalTeam(player?.team);
+        return (!position || playerPosition === position) && (!team || playerTeam === team);
+      });
+      if (strict) return text(strict.id) || rawId;
+
+      const positional = matches.find(player => canonicalType(text(player?.position).toUpperCase()) === position);
+      return text(positional?.id || matches[0]?.id) || rawId;
+    }
+
     async function draftObject(draftId) {
       return fetchJson(`${API}/draft/${encodeURIComponent(draftId)}`, 'Sleeper draft');
     }
@@ -175,7 +217,7 @@
             overall,
             round: positiveInt(item?.round, Math.floor((overall - 1) / teams) + 1),
             pickInRound: ((overall - 1) % teams) + 1,
-            playerId: text(item?.player_id),
+            playerId: resolveSleeperPlayerId(item),
             teamId: text(item?.roster_id ?? item?.picked_by),
             source: 'sleeper'
           };
