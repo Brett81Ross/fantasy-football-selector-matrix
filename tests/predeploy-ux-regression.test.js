@@ -23,8 +23,9 @@ test('K and DST keep late-round protection',()=>{
 test('Install App remains inside Share modal instead of a floating CTA',()=>{
   assert.match(install,/document\.getElementById\('shareModal'\)/);
   assert.match(install,/b\.id='shareInstallApp'/);
+  assert.match(install,/b\.className='secondary'/);
   assert.match(install,/nativeShare\.insertAdjacentElement\('afterend',b\)/);
-  assert.doesNotMatch(install,/position:'fixed'.*shareInstallApp/s);
+  assert.doesNotMatch(install,/shareInstallApp[^\n]*position\s*[:=]/);
 });
 
 test('app shell still loads special teams and native install runtime',()=>{
