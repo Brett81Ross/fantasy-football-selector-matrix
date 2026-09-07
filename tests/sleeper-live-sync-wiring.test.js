@@ -5,8 +5,8 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const app = fs.readFileSync(path.join(root, 'api/app.js'), 'utf8');
-const live = fs.readFileSync(path.join(root, 'live-draft-mode.js'), 'utf8');
 const sync = fs.readFileSync(path.join(root, 'sleeper-live-sync.js'), 'utf8');
+const bridge = fs.readFileSync(path.join(root, 'draft-state-render-bridge.js'), 'utf8');
 
 test('app shell loads provider dependencies before Sleeper live sync', () => {
   const order = [
@@ -15,16 +15,18 @@ test('app shell loads provider dependencies before Sleeper live sync', () => {
     'draft-core/reliability.js',
     'draft-core/provider-session.js',
     'live-draft-mode.js',
+    'draft-state-render-bridge.js',
     'sleeper-live-sync.js'
   ].map(name => app.indexOf(`'${name}'`));
   order.forEach(index => assert.ok(index >= 0));
   for (let i=1;i<order.length;i++) assert.ok(order[i] > order[i-1]);
 });
 
-test('Sleeper sync publishes canonical state and notifies Live Draft Mode', () => {
+test('Sleeper sync publishes canonical state and render bridge refreshes Live Draft Mode', () => {
   assert.match(sync, /window\.ffmCanonicalDraftState\s*=\s*next/);
   assert.match(sync, /ffm:draft-state/);
-  assert.match(live, /ffm:draft-state/);
+  assert.match(bridge, /ffm:draft-state/);
+  assert.match(bridge, /renderAll/);
 });
 
 test('Sleeper sync exposes connect, league selection, and manual fallback controls', () => {
