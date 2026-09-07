@@ -61,14 +61,17 @@
       if(!payloadUsable(data))throw new Error('Player payload incomplete');
       applyPayload(data);saveLastGood(data);
       const live=Number(data.liveGames||0),teams=Number(data.health?.teamsLoaded||0),partial=teams<32;
-      const degraded=data.health?.performanceFeed==='degraded'||data.health?.liveFeed==='degraded'||Boolean(data.source?.fallback);
-      status(live?`LIVE NFL DATA · ${live} game${live===1?'':'s'} active`:degraded?'NFL DATA DEGRADED · validated fallback active':partial?`NFL DATA DEGRADED · ${teams}/32 teams loaded`:'NFL DATA LIVE · sources connected',false,`${data.currentSeason} · ${teams}/32 teams`);
-      const note=document.getElementById('draftSourceNote');if(note)note.textContent=data.source?.note||'Current NFL roster and live scoreboard data online.';
-      window.__FFM_LAST_LIVE_UPDATE__=data.generatedAt;window.__FFM_DATA_HEALTH__={...(data.health||{}),stale:false};window.__FFM_DATA_ERROR__='';
+      const draftDegraded=data.health?.performanceFeed==='degraded'||Boolean(data.source?.fallback)||partial;
+      const scoreboardDegraded=data.health?.liveFeed==='degraded';
+      const baseline=data.statsSeason?`${data.statsSeason} performance baseline`:'role-based baseline';
+      status(draftDegraded?'NFL DRAFT DATA DEGRADED · validated fallback active':`NFL DRAFT DATA LIVE · ${baseline}`,false,`${data.currentSeason} roster · ${teams}/32 teams`);
+      const note=document.getElementById('draftSourceNote');
+      if(note)note.textContent=draftDegraded?(data.source?.note||'Validated fallback player data active.'):`Current ${data.rosterSeason||data.currentSeason} NFL roster with ${baseline}.${scoreboardDegraded?' Live scoreboard is temporarily unavailable; draft rankings are unaffected.':live?` ${live} live game${live===1?'':'s'} active.`:''}`;
+      window.__FFM_LAST_LIVE_UPDATE__=data.generatedAt;window.__FFM_DATA_HEALTH__={...(data.health||{}),draftData: draftDegraded?'degraded':'live',scoreboard:scoreboardDegraded?'degraded':'live',stale:false};window.__FFM_DATA_ERROR__='';
     }catch(e){
       const hasPlayers=typeof state!=='undefined'&&Array.isArray(state.players)&&state.players.length>0;
       const restored=hasPlayers?false:restoreLastGood(true);
-      if(!restored&&hasPlayers)status('NFL DATA DEGRADED · using current loaded board',false);
+      if(!restored&&hasPlayers)status('NFL DRAFT DATA DEGRADED · using current loaded board',false);
       if(!restored&&!hasPlayers)status('Football data unavailable',true);
       window.__FFM_DATA_ERROR__=String(e?.message||e);
     }finally{busy=false}
