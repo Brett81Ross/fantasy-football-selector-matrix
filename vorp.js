@@ -7,6 +7,7 @@
   const DEFAULT_LINEUP = Object.freeze({ QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1 });
   const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
   const FLEX_POSITIONS = ['RB', 'WR', 'TE'];
+  const PURE = globalThis.FFMDraftEvaluators || null;
 
   function safeJson(key, fallback) {
     try {
@@ -57,6 +58,7 @@
     }
 
     function playerQuality(player) {
+      if (PURE?.playerQuality) return PURE.playerQuality(player, clamp);
       if (!player) return 0;
       const m = player.metrics || {};
       let quality =
@@ -134,6 +136,21 @@
       if (!player || !POSITIONS.includes(player.position)) return { vorp: 0, waitCost: 0, replacement: null, replacementRank: 0, expectedTaken: 0, quality: 0 };
       const snap = buildSnapshot();
       if (evaluationCache.has(player.id)) return evaluationCache.get(player.id);
+
+      if (PURE?.evaluateVorpWait) {
+        const pureResult = PURE.evaluateVorpWait({
+          player,
+          groups: snap.groups,
+          openDemand: snap.openDemand,
+          totalOpenDemand: snap.totalOpenDemand,
+          picksAway: Math.max(1, Number(state.picksUntilNext || snap.teams)),
+          rosterNeed: snap.needs,
+          flexPositions: FLEX_POSITIONS,
+          playerQuality
+        });
+        evaluationCache.set(player.id, pureResult);
+        return pureResult;
+      }
 
       const group = snap.groups[player.position] || [];
       const quality = playerQuality(player);
