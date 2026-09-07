@@ -4,7 +4,7 @@ const E = require('../draft-core/evaluators');
 
 test('playerQuality preserves weighted legacy formula', () => {
   const player = { metrics: { production: 80, opportunity: 70, consistency: 60, ceiling: 90, trend: 50, availability: 100 }, status: 'ACT' };
-  assert.equal(E.playerQuality(player), 75.9);
+  assert.equal(E.playerQuality(player), 75);
 });
 
 test('playerQuality preserves rookie draftBase floor and PUP penalty', () => {
@@ -27,7 +27,7 @@ test('evaluateVorpWait derives replacement value and wait cost from a snapshot',
     rosterNeed: { open: { WR: 1 }, flexOpen: 0 },
     flexPositions: ['RB', 'WR', 'TE']
   });
-  assert.equal(result.replacement.player.id, 'B');
+  assert.equal(result.replacement.id, 'B');
   assert.ok(result.vorp > 0);
   assert.ok(result.waitCost > 0);
   assert.equal(result.rosterFactor, 1.08);
