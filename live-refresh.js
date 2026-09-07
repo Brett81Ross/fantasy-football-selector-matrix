@@ -5,9 +5,12 @@
   const VERSION_KEY='ffm-app-version';
   const LAST_GOOD_PREFIX='ffm-last-good:';
   const MAX_LAST_GOOD_AGE_MS=24*60*60*1000;
+  const STARTUP_RETRY_MS=100;
+  const STARTUP_TIMEOUT_MS=10000;
   let busy=false;
 
   function scoring(){try{return (typeof state!=='undefined'&&state.scoring)||'ppr'}catch(_){return'ppr'}}
+  function appReady(){try{return typeof state!=='undefined'&&Array.isArray(state.players)&&typeof renderAll==='function'}catch(_){return false}}
   function lastGoodKey(){return `${LAST_GOOD_PREFIX}${VERSION}:${scoring()}`}
   function payloadUsable(data){return Array.isArray(data?.players)&&data.players.length>=40&&data.players.every(p=>p&&p.id&&p.name&&p.position)}
   function ageLabel(ms){const mins=Math.max(0,Math.round(ms/60000));if(mins<2)return'just now';if(mins<60)return`${mins}m ago`;const hrs=Math.round(mins/60);return`${hrs}h ago`}
@@ -19,11 +22,11 @@
     const s=document.getElementById('dataSeason');if(s&&season)s.textContent=season;
   }
   function applyPayload(data){
-    if(typeof state==='undefined'||!payloadUsable(data))return false;
+    if(!appReady()||!payloadUsable(data))return false;
     const drafted=state.drafted,compare=state.compare;
     state.players=data.players;state.dataMeta=data;
     if(drafted)state.drafted=drafted;if(compare)state.compare=compare;
-    if(typeof renderAll==='function')renderAll();
+    renderAll();
     return true;
   }
   function saveLastGood(data){
@@ -31,6 +34,7 @@
     try{localStorage.setItem(lastGoodKey(),JSON.stringify({savedAt:Date.now(),data}))}catch(_){}
   }
   function restoreLastGood(showStatus=true){
+    if(!appReady())return false;
     try{
       const raw=localStorage.getItem(lastGoodKey());if(!raw)return false;
       const saved=JSON.parse(raw),age=Date.now()-Number(saved?.savedAt||0);
@@ -53,13 +57,14 @@
   }catch(_){}
 
   async function refresh(){
-    if(busy||document.hidden)return;busy=true;
+    if(busy||document.hidden||!appReady())return false;busy=true;
     try{
       const r=await fetch(`/api/nfl-live?scoring=${encodeURIComponent(scoring())}&t=${Date.now()}`,{cache:'no-store'});
       const data=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(data.detail||`HTTP ${r.status}`);
       if(!payloadUsable(data))throw new Error('Player payload incomplete');
-      applyPayload(data);saveLastGood(data);
+      if(!applyPayload(data))throw new Error('App not ready to apply player payload');
+      saveLastGood(data);
       const live=Number(data.liveGames||0),teams=Number(data.health?.teamsLoaded||0),partial=teams<32;
       const draftDegraded=data.health?.performanceFeed==='degraded'||Boolean(data.source?.fallback)||partial;
       const scoreboardDegraded=data.health?.liveFeed==='degraded';
@@ -68,20 +73,36 @@
       const note=document.getElementById('draftSourceNote');
       if(note)note.textContent=draftDegraded?(data.source?.note||'Validated fallback player data active.'):`Current ${data.rosterSeason||data.currentSeason} NFL roster with ${baseline}.${scoreboardDegraded?' Live scoreboard is temporarily unavailable; draft rankings are unaffected.':live?` ${live} live game${live===1?'':'s'} active.`:''}`;
       window.__FFM_LAST_LIVE_UPDATE__=data.generatedAt;window.__FFM_DATA_HEALTH__={...(data.health||{}),draftData: draftDegraded?'degraded':'live',scoreboard:scoreboardDegraded?'degraded':'live',stale:false};window.__FFM_DATA_ERROR__='';
+      return true;
     }catch(e){
-      const hasPlayers=typeof state!=='undefined'&&Array.isArray(state.players)&&state.players.length>0;
+      const hasPlayers=appReady()&&state.players.length>0;
       const restored=hasPlayers?false:restoreLastGood(true);
       if(!restored&&hasPlayers)status('NFL DRAFT DATA DEGRADED · using current loaded board',false);
       if(!restored&&!hasPlayers)status('Football data unavailable',true);
       window.__FFM_DATA_ERROR__=String(e?.message||e);
+      return false;
     }finally{busy=false}
   }
   async function checkForAppUpdate(){if(!('serviceWorker'in navigator))return;try{const reg=await navigator.serviceWorker.getRegistration();if(reg)await reg.update()}catch(_){}}
+  function startWhenReady(){
+    const started=Date.now();
+    const attempt=async()=>{
+      if(appReady()){
+        restoreLastGood(true);
+        await checkForAppUpdate();
+        await refresh();
+        return;
+      }
+      if(Date.now()-started<STARTUP_TIMEOUT_MS)return setTimeout(attempt,STARTUP_RETRY_MS);
+      status('Football data initializing…',false);
+      setTimeout(startWhenReady,STARTUP_RETRY_MS);
+    };
+    attempt();
+  }
 
-  restoreLastGood(true);
   window.addEventListener('focus',()=>{checkForAppUpdate();refresh()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForAppUpdate();refresh()}});
-  setTimeout(()=>{checkForAppUpdate();refresh()},250);
+  startWhenReady();
   setInterval(refresh,POLL_MS);
   document.querySelectorAll('.brand small').forEach(el=>el.textContent=el.textContent.replace(/v\d+\.\d+\.\d+/,`v${VERSION}`));
   const footer=document.querySelector('footer');if(footer)footer.innerHTML=footer.innerHTML.replace(/v\d+\.\d+\.\d+/,`v${VERSION}`);
