@@ -3,6 +3,7 @@
 
   const VERSION = '1.3.3';
   const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
+  const PURE = globalThis.FFMDraftEvaluators || null;
 
   function onReady() {
     if (typeof state === 'undefined' || typeof matrixScore !== 'function' || typeof renderAll !== 'function') return;
@@ -45,6 +46,7 @@
 
     function classify(players) {
       const items = players.map(player => ({ player, value: liveValue(player) }));
+      if (PURE?.classifyTierValues) return PURE.classifyTierValues(items);
       const gaps = [];
       for (let i = 0; i < items.length - 1; i++) gaps.push(Math.max(0, items[i].value - items[i + 1].value));
       const normalGap = Math.max(0.8, median(gaps.slice(0, Math.min(30, gaps.length))));
