@@ -1,0 +1,26 @@
+name: Predeploy QA
+
+on:
+  push:
+    branches:
+      - qa/predeploy-regression-2026-09-07
+  workflow_dispatch:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check runtime modules
+        run: |
+          node --check roster-needs.js
+          node --check sleeper-live-sync.js
+          node --check draft-state-render-bridge.js
+          node --check live-draft-mode.js
+          for f in draft-core/*.js; do node --check "$f"; done
+      - name: Run complete Node regression suite
+        run: node --test tests/*.test.js
