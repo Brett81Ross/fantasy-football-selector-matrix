@@ -49,7 +49,13 @@
 
     const byPosition = {};
     for (const candidate of available) {
-      if (!byPosition[candidate.position]) byPosition[candidate.position] = candidate;
+      const current = byPosition[candidate.position];
+      if (!current ||
+          finite(candidate.components?.playerValue) > finite(current.components?.playerValue) ||
+          (finite(candidate.components?.playerValue) === finite(current.components?.playerValue) && candidate.score > current.score) ||
+          (finite(candidate.components?.playerValue) === finite(current.components?.playerValue) && candidate.score === current.score && String(candidate.playerId).localeCompare(String(current.playerId)) < 0)) {
+        byPosition[candidate.position] = candidate;
+      }
     }
 
     const top = available[0] || null;
