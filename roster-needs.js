@@ -7,6 +7,7 @@
   const DEFAULT_LINEUP = Object.freeze({ QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1 });
   const FLEX_POSITIONS = ['RB', 'WR', 'TE'];
   const POSITIONS = ['QB', 'RB', 'WR', 'TE'];
+  const PURE = globalThis.FFMDraftEvaluators || null;
 
   function safeJson(key, fallback) {
     try {
@@ -83,6 +84,18 @@
 
       let rosterIds = [];
       try { rosterIds = JSON.parse(rosterRaw) || []; } catch (_) {}
+      if (PURE?.buildLegacyRosterSnapshot) {
+        snapshotKey = key;
+        snapshotValue = PURE.buildLegacyRosterSnapshot({
+          lineup,
+          players: state.players,
+          rosterIds,
+          positions: POSITIONS,
+          flexPositions: FLEX_POSITIONS
+        });
+        return snapshotValue;
+      }
+
       const roster = new Set(rosterIds);
       const counts = { QB: 0, RB: 0, WR: 0, TE: 0 };
       for (const player of state.players) {
@@ -110,6 +123,15 @@
     function needBoost(player, round) {
       if (!player || !POSITIONS.includes(player.position)) return 0;
       const need = rosterSnapshot();
+      if (PURE?.evaluateRosterNeed) {
+        return PURE.evaluateRosterNeed({
+          player,
+          round,
+          snapshot: need,
+          positions: POSITIONS,
+          flexPositions: FLEX_POSITIONS
+        });
+      }
       const total = Math.max(1, need.totalStarters);
       const fillPressure = need.filledStarters / total;
       const roundPressure = Math.max(0, Math.min(1, (Number(round || 1) - 1) / 6));
