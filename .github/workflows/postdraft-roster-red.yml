@@ -1,0 +1,14 @@
+name: Post Draft Roster Red
+on:
+  push:
+    branches:
+      - abl/fantasy-postdraft-roster-authority-2026-09-07
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test tests/sleeper-provider.test.js
