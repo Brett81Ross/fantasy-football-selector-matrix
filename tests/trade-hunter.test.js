@@ -78,12 +78,12 @@ test('scans every other roster, not only this weeks opponent', () => {
 test('marks buy-low and sell-high signals when market and rest-of-season values diverge', () => {
   const snap=makeSnapshot([
     {rosterId:'1',playerIds:['Q1','R1','R2','W1','W2','SELL','T1']},
-    {rosterId:'2',playerIds:['Q2','BUY','R4','W4','W5','T2']}
+    {rosterId:'2',playerIds:['Q2','BUY','R4','R5','W4','W5','T2']}
   ]);
   const values={
     Q1:{position:'QB',value:70},R1:{position:'RB',value:50},R2:{position:'RB',value:48},W1:{position:'WR',value:88},W2:{position:'WR',value:84},T1:{position:'TE',value:70},
     SELL:{position:'WR',value:72,marketValue:88,restOfSeasonValue:70},
-    Q2:{position:'QB',value:70},BUY:{position:'RB',value:82,marketValue:68,restOfSeasonValue:86},R4:{position:'RB',value:75},W4:{position:'WR',value:48},W5:{position:'WR',value:45},T2:{position:'TE',value:70}
+    Q2:{position:'QB',value:70},BUY:{position:'RB',value:82,marketValue:68,restOfSeasonValue:86},R4:{position:'RB',value:75},R5:{position:'RB',value:72},W4:{position:'WR',value:48},W5:{position:'WR',value:45},T2:{position:'TE',value:70}
   };
   const trades=findTradeOpportunities(snap,'1',values);
   const signal=trades.find(t=>t.givePlayerIds.includes('SELL') && t.getPlayerIds.includes('BUY'));
