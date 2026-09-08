@@ -2,10 +2,13 @@
   const contracts = typeof module === 'object' && module.exports
     ? require('./contracts')
     : root.FFMDraftContracts;
-  const api = factory(contracts);
+  const seasonContracts = typeof module === 'object' && module.exports
+    ? require('../season-core/contracts')
+    : root.FFMSeasonContracts;
+  const api = factory(contracts, seasonContracts);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.FFMSleeperDraftProvider = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (contracts) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (contracts, seasonContracts) {
   'use strict';
 
   const API = 'https://api.sleeper.app/v1';
@@ -167,6 +170,11 @@
       });
     }
 
+    function rawPlayerStatus(entry) {
+      if (!entry || typeof entry !== 'object') return 'Unknown';
+      return text(entry.injury_status || entry.status) || 'Unknown';
+    }
+
     async function completedRosterSnapshot(leagueId, myTeamId) {
       const [rawRosters, directory] = await Promise.all([
         fetchJson(`${API}/league/${encodeURIComponent(leagueId)}/rosters`, 'Sleeper rosters'),
@@ -315,6 +323,81 @@
         requireConnected();
         const draft = await draftObject(draftId);
         return canonicalPicks(text(draftId), draft);
+      },
+
+      async loadSeasonSnapshot(leagueId) {
+        requireConnected();
+        if (!seasonContracts?.normalizeLeagueSnapshot) throw new Error('Season contracts are unavailable');
+        const id = text(leagueId);
+        if (!id) throw new Error('Sleeper season snapshot requires leagueId');
+
+        const [rawLeague, nflState, rawRosters, directory] = await Promise.all([
+          fetchJson(`${API}/league/${encodeURIComponent(id)}`, 'Sleeper league'),
+          fetchJson(`${API}/state/nfl`, 'Sleeper NFL state'),
+          fetchJson(`${API}/league/${encodeURIComponent(id)}/rosters`, 'Sleeper rosters'),
+          getSleeperDirectory()
+        ]);
+        const league = await normalizeLeague(rawLeague);
+        const week = positiveInt(nflState?.week, 0);
+        const rawMatchups = week
+          ? await fetchJson(`${API}/league/${encodeURIComponent(id)}/matchups/${week}`, 'Sleeper matchups')
+          : [];
+        const matchups = Array.isArray(rawMatchups) ? rawMatchups : [];
+        const matchupByRoster = new Map(matchups.map(item => [text(item?.roster_id), item]));
+
+        let myRosterId = null;
+        const rosters = (Array.isArray(rawRosters) ? rawRosters : []).map(rawRoster => {
+          const rosterId = text(rawRoster?.roster_id);
+          if (text(rawRoster?.owner_id) === text(user?.user_id)) myRosterId = rosterId;
+          const resolveList = values => [...new Set((Array.isArray(values) ? values : [])
+            .map(value => resolveRosterPlayerId(value, directory))
+            .filter(Boolean))];
+          const matchup = matchupByRoster.get(rosterId);
+          return {
+            rosterId,
+            ownerId: text(rawRoster?.owner_id) || null,
+            playerIds: resolveList(rawRoster?.players),
+            starterPlayerIds: resolveList(matchup?.starters || rawRoster?.starters),
+            reservePlayerIds: resolveList(rawRoster?.reserve)
+          };
+        });
+
+        let opponentRosterId = null;
+        if (myRosterId) {
+          const mine = matchupByRoster.get(myRosterId);
+          const matchupId = mine?.matchup_id;
+          if (matchupId !== null && matchupId !== undefined) {
+            const opponent = matchups.find(item => text(item?.roster_id) !== myRosterId && item?.matchup_id === matchupId);
+            opponentRosterId = opponent ? text(opponent.roster_id) : null;
+          }
+        }
+
+        const poolIds = new Set(pool.map(player => text(player.id)).filter(Boolean));
+        const playerStatuses = {};
+        for (const [providerPlayerId, entry] of Object.entries(directory || {})) {
+          const playerId = resolveRosterPlayerId(providerPlayerId, directory);
+          if (!playerId || !poolIds.has(playerId)) continue;
+          playerStatuses[playerId] = {
+            raw: rawPlayerStatus(entry),
+            providerPlayerId: text(providerPlayerId),
+            source: 'sleeper'
+          };
+        }
+
+        return seasonContracts.normalizeLeagueSnapshot({
+          league,
+          week,
+          myRosterId,
+          opponentRosterId,
+          rosters,
+          playerPool: pool,
+          playerStatuses,
+          freshness: {
+            status: 'fresh',
+            asOf: new Date().toISOString(),
+            source: 'sleeper'
+          }
+        });
       },
 
       async loadDraft(draftId) {
