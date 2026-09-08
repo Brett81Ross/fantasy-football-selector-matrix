@@ -109,6 +109,7 @@
         expectedPoints:candidate.projection,
         lineupScore:candidate.lineupScore,
         status:candidate.status,
+        statusLabel:candidate.statusLabel,
         risk:candidate.risk,
         confidence:candidate.confidence
       }));
@@ -123,6 +124,7 @@
         expectedPoints:player.projection,
         lineupScore:player.lineupScore,
         status:player.status,
+        statusLabel:player.statusLabel,
         risk:player.risk,
         confidence:player.confidence,
         available:player.available
