@@ -45,15 +45,38 @@
   }
 
   function buildLiveDraftView(input = {}) {
+    const syncStatus = text(input.sync?.status).toUpperCase() || 'MANUAL';
+    const syncLabel = ['LIVE', 'STALE', 'DISCONNECTED', 'MANUAL'].includes(syncStatus) ? syncStatus : 'MANUAL';
+    const rosterChips = buildRosterChips(input.rosterSlots, input.assignments);
+    const recentPicks = buildRecentPicks(input.recentPicks, input.playerNames, input.myTeamId);
+    const completed = text(input.draftStatus).toLowerCase() === 'completed';
+
+    if (completed) {
+      return {
+        mode: 'post_draft',
+        headline: 'DRAFT COMPLETE',
+        playerName: '',
+        position: '',
+        slotLabel: '',
+        score: null,
+        reason: 'Final roster synced. Review Waivers for upgrades or Trade for roster improvements.',
+        rosterChips,
+        recentPicks,
+        syncLabel,
+        showDraftActions: false,
+        actions: Object.freeze({ waivers: 'OPEN WAIVERS', trade: 'OPEN TRADE' })
+      };
+    }
+
     const recommendation = input.recommendation && typeof input.recommendation === 'object'
       ? input.recommendation
       : null;
     const position = text(recommendation?.position);
     const playerName = text(recommendation?.playerName) || text(recommendation?.playerId);
     const slotLabel = baseSlotId(recommendation?.slotId);
-    const syncStatus = text(input.sync?.status).toUpperCase() || 'MANUAL';
 
     return {
+      mode: 'live_draft',
       headline: recommendation
         ? `BEST PICK: ${position || '—'} — ${playerName || 'No player'}`
         : 'BEST PICK: WAITING FOR DRAFT STATE',
@@ -62,9 +85,10 @@
       slotLabel,
       score: Number.isFinite(Number(recommendation?.score)) ? Number(recommendation.score) : null,
       reason: text(recommendation?.explanation) || 'The Matrix will update as the draft changes.',
-      rosterChips: buildRosterChips(input.rosterSlots, input.assignments),
-      recentPicks: buildRecentPicks(input.recentPicks, input.playerNames, input.myTeamId),
-      syncLabel: ['LIVE', 'STALE', 'DISCONNECTED', 'MANUAL'].includes(syncStatus) ? syncStatus : 'MANUAL',
+      rosterChips,
+      recentPicks,
+      syncLabel,
+      showDraftActions: true,
       actions: Object.freeze({ they: 'THEY TOOK HIM', mine: 'I TOOK HIM', undo: 'UNDO' })
     };
   }

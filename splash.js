@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION='1.4.5';
+  const VERSION=(()=>{try{return new URL(document.currentScript?.src||location.href,location.href).searchParams.get('v')||'unknown'}catch(_){return'unknown'}})();
   const STUDIO='/icons/cactus-byte-studios.svg';
   const APP='/icons/ffm-user-logo.svg';
   const MIN_MS=900;

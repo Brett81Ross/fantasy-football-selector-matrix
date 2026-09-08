@@ -138,6 +138,11 @@
     return Object.fromEntries(state.players.map(player => [player.id, player.name]));
   }
 
+  function activateTab(tabName) {
+    const tab = document.querySelector(`.tab[data-tab="${tabName}"]`);
+    if (tab) tab.click();
+  }
+
   function mount() {
     if (document.getElementById('liveDraftMode')) return;
     const draft = document.getElementById('draft');
@@ -161,7 +166,7 @@
     panel.className = 'live-draft-mode';
     panel.setAttribute('aria-label', 'Live Draft Mode');
     panel.innerHTML = `
-      <div class="live-draft-top"><span class="live-draft-eyebrow">LIVE DRAFT MODE</span><span class="live-sync" id="liveSync">MANUAL</span></div>
+      <div class="live-draft-top"><span class="live-draft-eyebrow" id="liveEyebrow">LIVE DRAFT MODE</span><span class="live-sync" id="liveSync">MANUAL</span></div>
       <div class="live-headline" id="liveHeadline">BEST PICK: LOADING…</div>
       <div class="live-reason" id="liveReason">Building your next recommendation.</div>
       <div class="live-roster" id="liveRoster"></div>
@@ -174,6 +179,7 @@
     document.body.classList.add('ffm-live-draft-mounted');
 
     document.getElementById('liveThey').addEventListener('click', () => {
+      if (canonicalState()?.status === 'completed') { activateTab('waiver'); return; }
       const pick = recommendation(assignmentState());
       if (!pick) return;
       recentManual.push({ overall:recentManual.length + 1, playerId:pick.playerId, teamId:'OTHER' });
@@ -182,6 +188,7 @@
       setTimeout(render, 0);
     });
     document.getElementById('liveMine').addEventListener('click', () => {
+      if (canonicalState()?.status === 'completed') { activateTab('trade'); return; }
       const pick = recommendation(assignmentState());
       if (!pick) return;
       recentManual.push({ overall:recentManual.length + 1, playerId:pick.playerId, teamId:'ME' });
@@ -190,6 +197,7 @@
       setTimeout(render, 0);
     });
     document.getElementById('liveUndo').addEventListener('click', () => {
+      if (canonicalState()?.status === 'completed') return;
       recentManual.pop();
       const fast = document.getElementById('fastUndo');
       if (fast) fast.click();
@@ -206,6 +214,7 @@
     const rec = recommendation(assignments);
     const canonical = canonicalState();
     const view = window.FFMLiveDraftView.buildLiveDraftView({
+      draftStatus: canonical?.status,
       recommendation: rec,
       rosterSlots: rosterSlots(),
       assignments: assignments.assignments,
@@ -217,6 +226,8 @@
       sync: syncMeta()
     });
 
+    panel.dataset.mode = view.mode;
+    document.getElementById('liveEyebrow').textContent = view.mode === 'post_draft' ? 'POST-DRAFT MODE' : 'LIVE DRAFT MODE';
     document.getElementById('liveSync').textContent = view.syncLabel;
     document.getElementById('liveHeadline').textContent = view.headline;
     document.getElementById('liveReason').innerHTML = `${escText(view.reason)}${view.slotLabel ? ` <span class="live-slot">→ ${escText(view.slotLabel)}</span>` : ''}`;
@@ -224,6 +235,20 @@
     document.getElementById('liveRecent').innerHTML = view.recentPicks.length
       ? view.recentPicks.map(pick => `<span class="live-pick">${escText(pick)}</span>`).join(' ')
       : '<span class="live-pick">No picks yet</span>';
+
+    const they = document.getElementById('liveThey');
+    const mine = document.getElementById('liveMine');
+    const undo = document.getElementById('liveUndo');
+    if (view.mode === 'post_draft') {
+      they.textContent = view.actions.waivers;
+      mine.textContent = view.actions.trade;
+      undo.hidden = true;
+    } else {
+      they.textContent = view.actions.they;
+      mine.textContent = view.actions.mine;
+      undo.textContent = view.actions.undo;
+      undo.hidden = false;
+    }
   }
 
   function init() {
@@ -239,6 +264,7 @@
       wrapped.__liveDraftWrapped = true;
       window.renderAll = wrapped;
     }
+    window.addEventListener('ffm:draft-state', render);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
     window.addEventListener('focus', render);
     render();
