@@ -65,6 +65,24 @@
       .flatMap(([position,players])=>players.length>1||!demanded.has(position)?players.slice().sort((a,b)=>a.value-b.value).slice(0,Math.max(1,players.length-1)):[]);
   }
 
+  function addStrategicCandidates(candidates, report, groups, signalType){
+    const seen=new Set(candidates.map(player=>player.id));
+    const fixed=report?.demand?.fixed||{};
+    for(const [position,players] of groups){
+      const fixedDemand=num(fixed[position],0);
+      if(players.length<=fixedDemand) continue;
+      for(const player of players){
+        const signal=signalType==='BUY_LOW'
+          ? player.restOfSeasonValue-player.marketValue>=8
+          : player.marketValue-player.restOfSeasonValue>=8;
+        if(signal&&!seen.has(player.id)){
+          candidates.push(player);
+          seen.add(player.id);
+        }
+      }
+    }
+  }
+
   function findTradeOpportunities(snapshot,rosterId,playerValues){
     const mineId=text(rosterId);
     const mine=(snapshot?.rosters||[]).find(r=>text(r.rosterId)===mineId);
@@ -80,6 +98,7 @@
     const mineWeak=weaknessMap(mineReport);
     const myCandidates=tradableFromSurplus(mineReport,mineGroups);
     if(!myCandidates.length) myCandidates.push(...fallbackTradable(mineReport,mineGroups));
+    addStrategicCandidates(myCandidates,mineReport,mineGroups,'SELL_HIGH');
     const opportunities=[];
 
     for(const other of snapshot.rosters||[]){
@@ -90,6 +109,7 @@
       const otherWeak=weaknessMap(otherReport);
       const otherCandidates=tradableFromSurplus(otherReport,otherGroups);
       if(!otherCandidates.length) otherCandidates.push(...fallbackTradable(otherReport,otherGroups));
+      addStrategicCandidates(otherCandidates,otherReport,otherGroups,'BUY_LOW');
 
       for(const give of myCandidates){
         if(!(mine.playerIds||[]).map(text).includes(give.id)) continue;
