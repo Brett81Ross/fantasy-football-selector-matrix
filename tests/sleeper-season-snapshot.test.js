@@ -50,7 +50,7 @@ test('Sleeper season snapshot uses current rosters, identifies this-week opponen
   assert.equal(snapshot.week, 3);
   assert.equal(snapshot.myRosterId, '1');
   assert.equal(snapshot.opponentRosterId, '2');
-  assert.deepEqual(snapshot.ownedPlayerIds.sort(), ['M1','M2','M3']);
+  assert.deepEqual([...snapshot.ownedPlayerIds].sort(), ['M1','M2','M3']);
   assert.deepEqual(snapshot.freeAgentPlayerIds, ['M4']);
   assert.deepEqual(snapshot.rosters.find(r=>r.rosterId==='1').reservePlayerIds, ['M2']);
   assert.equal(snapshot.playerStatuses.M2.raw, 'Questionable');
