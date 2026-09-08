@@ -18,6 +18,14 @@ function dogfoodFetch(url) {
     scoring_settings:{ rec:1 },
     roster_positions:['QB','RB','RB','WR','WR','TE','FLEX','FLEX','K','DEF','BN','BN','BN','BN','BN']
   }));
+  if (url.endsWith(`/league/${LEAGUE_ID}/rosters`)) return Promise.resolve(response([
+    { roster_id:1, owner_id:USER_ID, players:['8130','8144','ATL'] }
+  ]));
+  if (url.endsWith('/players/nfl')) return Promise.resolve(response({
+    '8130':{ player_id:'8130', first_name:'Trey', last_name:'McBride', position:'TE', team:'ARI' },
+    '8144':{ player_id:'8144', first_name:'Chris', last_name:'Olave', position:'WR', team:'NO' },
+    'ATL':{ player_id:'ATL', first_name:'Atlanta', last_name:'Falcons', position:'DEF', team:'ATL' }
+  }));
   if (url.endsWith(`/draft/${DRAFT_ID}/picks`)) return Promise.resolve(response([
     { pick_no:12, round:1, draft_slot:12, player_id:'8130', roster_id:1, picked_by:USER_ID, metadata:{ first_name:'Trey', last_name:'McBride', position:'TE', team:'ARI' } },
     { pick_no:21, round:2, draft_slot:12, player_id:'8144', roster_id:1, picked_by:USER_ID, metadata:{ first_name:'Chris', last_name:'Olave', position:'WR', team:'NO' } },
@@ -53,7 +61,7 @@ test('real Game of Throws shape resolves the owner to roster 1 and preserves exa
   assert.equal(state.picksUntilMyNext, null);
 });
 
-test('Sleeper player IDs crosswalk to Matrix GSIS IDs so drafted players leave the board', async () => {
+test('Sleeper player IDs crosswalk to Matrix GSIS IDs so rostered players leave the board', async () => {
   const provider = createSleeperDraftProvider({ fetchImpl:dogfoodFetch });
   await provider.connect({ username:'BRoss81', season:2026, playerPool });
   const state = await provider.loadDraft(DRAFT_ID);
