@@ -32,7 +32,7 @@ test('normalizes a league snapshot and excludes every owned player from free age
   assert.equal(snapshot.week, 3);
   assert.equal(snapshot.myRosterId, '1');
   assert.equal(snapshot.opponentRosterId, '2');
-  assert.deepEqual(snapshot.ownedPlayerIds.sort(), ['P1','P2','P3','P4']);
+  assert.deepEqual([...snapshot.ownedPlayerIds].sort(), ['P1','P2','P3','P4']);
   assert.deepEqual(snapshot.freeAgentPlayerIds, ['P5']);
   assert.equal(snapshot.playerStatuses.P2.raw, 'Questionable');
   assert.equal(Object.isFrozen(snapshot), true);
