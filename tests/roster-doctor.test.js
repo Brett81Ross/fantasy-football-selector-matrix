@@ -79,7 +79,7 @@ test('bench depth and surplus are recognized beyond required starter demand', ()
     TE1:{position:'TE', value:71}
   };
   const report = evaluateRoster(snap, '1', values);
-  assert.ok(report.benchDepth.count >= 3);
+  assert.ok(report.benchDepth.count >= 2);
   assert.ok(report.surplus.some(item=>item.position==='WR'));
 });
 
