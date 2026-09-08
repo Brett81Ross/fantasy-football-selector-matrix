@@ -1,4 +1,4 @@
-name: Post Draft Roster Red
+name: Post Draft Roster QA
 on:
   push:
     branches:
@@ -11,4 +11,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test tests/sleeper-provider.test.js
+      - name: Syntax
+        run: node --check draft-core/sleeper-provider.js
+      - name: Full suite
+        run: node --test tests/*.test.js
