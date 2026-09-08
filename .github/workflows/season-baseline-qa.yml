@@ -1,0 +1,15 @@
+name: Season Intelligence Baseline QA
+on:
+  push:
+    branches:
+      - abl/fantasy-season-intelligence-2026-09-07
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Full regression baseline
+        run: node --test tests/*.test.js
