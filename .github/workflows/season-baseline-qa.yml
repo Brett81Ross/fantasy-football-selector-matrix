@@ -14,8 +14,13 @@ jobs:
       - name: Syntax checks
         run: |
           node --check season-core/contracts.js
+          node --check season-core/player-status.js
+          node --check season-core/roster-doctor.js
+          node --check season-core/lineup-optimizer.js
+          node --check season-core/waiver-assassin.js
+          node --check season-core/trade-hunter.js
           node --check draft-core/sleeper-provider.js
-      - name: ABL-16 targeted tests
-        run: node --test tests/season-contracts.test.js tests/sleeper-season-snapshot.test.js
+      - name: Season Intelligence targeted tests
+        run: node --test tests/season-contracts.test.js tests/sleeper-season-snapshot.test.js tests/player-status.test.js tests/roster-doctor.test.js tests/lineup-optimizer.test.js tests/waiver-assassin.test.js tests/trade-hunter.test.js
       - name: Full regression
         run: node --test tests/*.test.js
