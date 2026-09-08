@@ -58,8 +58,7 @@
     for (const raw of Array.isArray(rawPositions) ? rawPositions : []) {
       const rawType = text(raw).toUpperCase();
       if (!rawType) continue;
-      const key = rawType;
-      counts.set(key, (counts.get(key) || 0) + 1);
+      counts.set(rawType, (counts.get(rawType) || 0) + 1);
     }
     return [...counts.entries()].map(([rawType, count]) => {
       const type = canonicalType(rawType);
@@ -97,6 +96,7 @@
     let user = null;
     let leagues = [];
     let pool = [];
+    let sleeperDirectory = null;
 
     if (!fetchImpl) throw new Error('Sleeper provider requires fetch');
 
@@ -141,6 +141,50 @@
 
       const positional = matches.find(player => canonicalType(text(player?.position).toUpperCase()) === position);
       return text(positional?.id || matches[0]?.id) || rawId;
+    }
+
+    async function getSleeperDirectory() {
+      if (sleeperDirectory) return sleeperDirectory;
+      const raw = await fetchJson(`${API}/players/nfl`, 'Sleeper player directory');
+      sleeperDirectory = raw && typeof raw === 'object' ? raw : {};
+      return sleeperDirectory;
+    }
+
+    function resolveRosterPlayerId(rawId, directory) {
+      const id = text(rawId);
+      if (!id) return '';
+      if (playerMap().has(id)) return id;
+      const entry = directory && typeof directory === 'object' ? directory[id] : null;
+      if (!entry || typeof entry !== 'object') return id;
+      return resolveSleeperPlayerId({
+        player_id: id,
+        metadata: {
+          first_name: entry.first_name,
+          last_name: entry.last_name,
+          position: entry.position,
+          team: entry.team
+        }
+      });
+    }
+
+    async function completedRosterSnapshot(leagueId, myTeamId) {
+      const [rawRosters, directory] = await Promise.all([
+        fetchJson(`${API}/league/${encodeURIComponent(leagueId)}/rosters`, 'Sleeper rosters'),
+        getSleeperDirectory()
+      ]);
+      const rosters = Array.isArray(rawRosters) ? rawRosters : [];
+      const rostered = new Set();
+      let mine = [];
+      for (const roster of rosters) {
+        const rawPlayers = [...new Set([
+          ...(Array.isArray(roster?.players) ? roster.players : []),
+          ...(Array.isArray(roster?.reserve) ? roster.reserve : [])
+        ].map(text).filter(Boolean))];
+        const resolved = rawPlayers.map(id => resolveRosterPlayerId(id, directory)).filter(Boolean);
+        resolved.forEach(id => rostered.add(id));
+        if (text(roster?.roster_id) === text(myTeamId)) mine = resolved;
+      }
+      return { rosteredPlayerIds: [...rostered], myPlayerIds: mine };
     }
 
     async function draftObject(draftId) {
@@ -235,6 +279,7 @@
         username = text(input?.username);
         season = positiveInt(input?.season, new Date().getUTCFullYear());
         pool = Array.isArray(input?.playerPool) ? clone(input.playerPool) : [];
+        sleeperDirectory = null;
         if (!username) throw new Error('Sleeper username is required');
         let resolved;
         try {
@@ -279,18 +324,28 @@
         const rawLeague = await fetchJson(`${API}/league/${encodeURIComponent(draft.league_id)}`, 'Sleeper league');
         const league = await normalizeLeague(rawLeague);
         const picks = await canonicalPicks(id, draft);
-        const draftedPlayerIds = picks.map(pick => pick.playerId);
-        const drafted = new Set(draftedPlayerIds);
-        const availablePlayerIds = pool.map(player => text(player.id)).filter(Boolean).filter(playerId => !drafted.has(playerId));
+        const status = mapDraftStatus(draft.status);
         const mine = myTeamIdFromDraft(draft);
         const players = playerMap();
-        const myRoster = picks
-          .filter(pick => pick.teamId === mine)
-          .map(pick => ({
-            playerId: pick.playerId,
-            slotId: 'UNASSIGNED',
-            position: text(players.get(pick.playerId)?.position) || 'UNKNOWN'
-          }));
+
+        let unavailablePlayerIds = picks.map(pick => pick.playerId);
+        let myPlayerIds = picks.filter(pick => pick.teamId === mine).map(pick => pick.playerId);
+        if (status === 'completed') {
+          const snapshot = await completedRosterSnapshot(draft.league_id, mine);
+          unavailablePlayerIds = snapshot.rosteredPlayerIds;
+          myPlayerIds = snapshot.myPlayerIds;
+        }
+
+        const unavailable = new Set(unavailablePlayerIds);
+        const availablePlayerIds = pool
+          .map(player => text(player.id))
+          .filter(Boolean)
+          .filter(playerId => !unavailable.has(playerId));
+        const myRoster = myPlayerIds.map(playerId => ({
+          playerId,
+          slotId: 'UNASSIGNED',
+          position: text(players.get(playerId)?.position) || 'UNKNOWN'
+        }));
         const nextOverall = picks.length + 1;
         const teams = positiveInt(draft?.settings?.teams, league.teams);
         const currentPick = {
@@ -302,13 +357,13 @@
         const state = {
           draftId: id,
           league,
-          status: mapDraftStatus(draft.status),
+          status,
           myTeamId: mine,
-          currentPick: mapDraftStatus(draft.status) === 'completed' ? null : currentPick,
-          picksUntilMyNext: mapDraftStatus(draft.status) === 'completed' ? null : picksUntilMine(draft, nextOverall, mine),
+          currentPick: status === 'completed' ? null : currentPick,
+          picksUntilMyNext: status === 'completed' ? null : picksUntilMine(draft, nextOverall, mine),
           teams: orderFromDraft(draft).map(teamId => ({ teamId })),
           picks,
-          draftedPlayerIds,
+          draftedPlayerIds: unavailablePlayerIds,
           availablePlayerIds,
           myRoster,
           recentPicks: picks.slice(-5),
