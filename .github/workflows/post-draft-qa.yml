@@ -1,0 +1,21 @@
+name: Post Draft QA
+on:
+  push:
+    branches:
+      - abl/fantasy-post-draft-version-fix-2026-09-07
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax checks
+        run: |
+          node --check splash.js
+          node --check live-draft-mode.js
+          node --check draft-core/live-draft-view.js
+          node --check sleeper-live-sync.js
+      - name: Full Node test suite
+        run: node --test tests/*.test.js
