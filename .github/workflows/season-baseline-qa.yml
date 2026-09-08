@@ -22,10 +22,11 @@ jobs:
           node --check season-core/opponent-exploiter.js
           node --check season-core/weekly-attack-plan.js
           node --check season-core/provider-session.js
+          node --check season-intelligence.js
           node --check sleeper-live-sync.js
           node --check api/app.js
           node --check draft-core/sleeper-provider.js
       - name: Season Intelligence targeted tests
-        run: node --test tests/season-contracts.test.js tests/sleeper-season-snapshot.test.js tests/player-status.test.js tests/roster-doctor.test.js tests/lineup-optimizer.test.js tests/waiver-assassin.test.js tests/trade-hunter.test.js tests/opponent-exploiter.test.js tests/weekly-attack-plan.test.js tests/season-provider-session.test.js tests/in-season-sync.test.js
+        run: node --test tests/season-contracts.test.js tests/sleeper-season-snapshot.test.js tests/player-status.test.js tests/roster-doctor.test.js tests/lineup-optimizer.test.js tests/waiver-assassin.test.js tests/trade-hunter.test.js tests/opponent-exploiter.test.js tests/weekly-attack-plan.test.js tests/season-provider-session.test.js tests/in-season-sync.test.js tests/season-intelligence-ui.test.js
       - name: Full regression
         run: node --test tests/*.test.js
