@@ -23,6 +23,6 @@ jobs:
           test ! -f season-core/weekly-attack-plan.js || node --check season-core/weekly-attack-plan.js
           node --check draft-core/sleeper-provider.js
       - name: Season Intelligence targeted tests
-        run: node --test tests/season-contracts.test.js tests/sleeper-season-snapshot.test.js tests/player-status.test.js tests/roster-doctor.test.js tests/lineup-optimizer.test.js tests/waiver-assassin.test.js tests/trade-hunter.test.js tests/opponent-exploiter.test.js $(test -f tests/weekly-attack-plan.test.js && echo tests/weekly-attack-plan.test.js)
+        run: node --test tests/season-contracts.test.js tests/sleeper-season-snapshot.test.js tests/player-status.test.js tests/roster-doctor.test.js tests/lineup-optimizer.test.js tests/waiver-assassin.test.js tests/trade-hunter.test.js tests/opponent-exploiter.test.js tests/weekly-attack-plan.test.js
       - name: Full regression
         run: node --test tests/*.test.js
