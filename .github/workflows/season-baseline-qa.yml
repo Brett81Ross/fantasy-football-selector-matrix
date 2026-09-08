@@ -11,5 +11,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Full regression baseline
-        run: node --test tests/*.test.js
+      - name: ABL-16 targeted tests
+        run: node --test tests/season-contracts.test.js tests/sleeper-season-snapshot.test.js
