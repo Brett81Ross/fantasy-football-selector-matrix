@@ -1,0 +1,10 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const {createSeasonProviderSession}=require('../season-core/provider-session');
+
+function snapshot(status='fresh'){return {league:{leagueId:'L1'},week:7,myRosterId:'1',opponentRosterId:'2',rosters:[{rosterId:'1',playerIds:['A']}],freeAgentPlayerIds:['B'],playerStatuses:{A:{raw:'Active'}},freshness:{status,asOf:'2026-09-08T10:00:00.000Z',source:'sleeper'}}}
+
+test('successful in-season refresh publishes a fresh LeagueSnapshot',async()=>{const states=[];const session=createSeasonProviderSession({provider:{loadSeasonSnapshot:async()=>snapshot()},onState:s=>states.push(s)});const result=await session.refresh('L1');assert.equal(result.ok,true);assert.equal(result.state.freshness.status,'fresh');assert.equal(states.length,1);});
+
+test('failed refresh preserves last-known-good ownership and marks it stale',async()=>{let fail=false;const provider={loadSeasonSnapshot:async()=>{if(fail)throw new Error('network');return snapshot()}};const session=createSeasonProviderSession({provider});await session.refresh('L1');fail=true;const result=await session.refresh('L1');assert.equal(result.ok,false);assert.equal(result.state.freshness.status,'stale');assert.deepEqual(result.state.rosters,[{rosterId:'1',playerIds:['A']}]);assert.ok(result.retryAfterMs>=60000);});
+test('recovery replaces stale ownership and status with fresh provider data',async()=>{let mode=0;const provider={loadSeasonSnapshot:async()=>{if(mode===1)throw new Error('temporary');if(mode===2)return {...snapshot(),rosters:[{rosterId:'1',playerIds:['C']}],playerStatuses:{C:{raw:'Questionable'}}};return snapshot()}};const session=createSeasonProviderSession({provider});await session.refresh('L1');mode=1;await session.refresh('L1');mode=2;const result=await session.refresh('L1');assert.equal(result.ok,true);assert.equal(result.recovered,true);assert.deepEqual(result.state.rosters[0].playerIds,['C']);assert.equal(result.state.playerStatuses.C.raw,'Questionable');});
