@@ -1,0 +1,21 @@
+name: Waiver Ownership Hotfix QA
+on:
+  push:
+    branches:
+      - hotfix/waiver-ownership-sync-2026-09-09
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check waiver-ownership-sync.js
+          node --check api/app.js
+      - name: Targeted waiver ownership tests
+        run: node --test tests/waiver-ownership-sync.test.js
+      - name: Full regression
+        run: node --test tests/*.test.js
