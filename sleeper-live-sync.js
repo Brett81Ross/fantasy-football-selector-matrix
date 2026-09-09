@@ -94,6 +94,10 @@
     seasonSession=window.FFMSeasonProviderSession.createSeasonProviderSession({provider,onState:publishSeason});
   }
 
+  function leagueById(leagueId){
+    return currentLeagues.find(item=>item.leagueId===String(leagueId||''))||null;
+  }
+
   async function startDraft(draftId,leagueId=''){
     currentDraftId=String(draftId||'').trim();
     currentLeagueId=String(leagueId||'').trim();
@@ -101,19 +105,35 @@
     safeSet(DRAFT_KEY,currentDraftId);
     safeSet(LEAGUE_KEY,currentLeagueId);
     createSession();
-    setStatus('Sleeper · syncing…');
+    const chosen=leagueById(currentLeagueId);
+    setStatus(`Sleeper · syncing ${chosen?.name||'league'}…`);
     await refresh();
+    if(window.ffmLeagueSnapshot){
+      setStatus(`Sleeper · ${chosen?.name||'league'} synced`,'fresh');
+    }
   }
 
   function renderLeagueOptions(leagues){
     const select=document.getElementById('sleeperLeague');
     const use=document.getElementById('sleeperUseLeague');
     if(!select||!use)return;
-    select.innerHTML=leagues.map(item=>`<option value="${esc(item.leagueId)}" data-draft="${esc(item.draftId)}">${esc(item.name||item.leagueId)} · ${esc(item.teams)} teams</option>`).join('');
+    const saved=safeGet(LEAGUE_KEY);
+    const savedExists=saved&&leagues.some(item=>item.leagueId===saved);
+    const placeholder=leagues.length>1&&!savedExists?'<option value="">Choose Sleeper league…</option>':'';
+    select.innerHTML=placeholder+leagues.map(item=>`<option value="${esc(item.leagueId)}" data-draft="${esc(item.draftId)}">${esc(item.name||item.leagueId)} · ${esc(item.teams)} teams</option>`).join('');
     select.hidden=leagues.length===0;
     use.hidden=leagues.length===0;
-    const saved=safeGet(LEAGUE_KEY);
-    if(saved&&leagues.some(item=>item.leagueId===saved))select.value=saved;
+    if(savedExists)select.value=saved;
+    else if(leagues.length===1)select.value=leagues[0].leagueId;
+    else select.value='';
+  }
+
+  async function useSelectedLeague(){
+    const select=document.getElementById('sleeperLeague');
+    const chosen=leagueById(select?.value);
+    if(!chosen){setStatus('Sleeper account connected · choose a league to start syncing','warn');return false}
+    await startDraft(chosen.draftId,chosen.leagueId);
+    return true;
   }
 
   async function connectSleeper({username,autoStart=true}={}){
@@ -126,14 +146,20 @@
     safeSet(USERNAME_KEY,input);
     renderLeagueOptions(currentLeagues);
     if(!currentLeagues.length){setStatus('No Sleeper NFL leagues found for this season.','warn');return}
-    setStatus(`${currentLeagues.length} Sleeper league${currentLeagues.length===1?'':'s'} found`);
 
     if(autoStart){
       const savedDraft=safeGet(DRAFT_KEY);
       const savedLeague=safeGet(LEAGUE_KEY);
       const selected=currentLeagues.find(item=>item.draftId===savedDraft)||currentLeagues.find(item=>item.leagueId===savedLeague)||(currentLeagues.length===1?currentLeagues[0]:null);
-      if(selected)await startDraft(selected.draftId,selected.leagueId);
+      if(selected){
+        const select=document.getElementById('sleeperLeague');
+        if(select)select.value=selected.leagueId;
+        await startDraft(selected.draftId,selected.leagueId);
+        return;
+      }
     }
+
+    setStatus(`Sleeper account connected · ${currentLeagues.length} leagues found · choose one to sync`,'warn');
   }
 
   function useManual(){
@@ -168,10 +194,11 @@
       try{await connectSleeper({autoStart:true})}catch(error){setStatus(String(error?.message||error),'error')}
     });
     document.getElementById('sleeperUseLeague').addEventListener('click',async()=>{
-      const select=document.getElementById('sleeperLeague');
-      const chosen=currentLeagues.find(item=>item.leagueId===select?.value);
-      if(!chosen)return;
-      try{await startDraft(chosen.draftId,chosen.leagueId)}catch(error){setStatus(String(error?.message||error),'error')}
+      try{await useSelectedLeague()}catch(error){setStatus(String(error?.message||error),'error')}
+    });
+    document.getElementById('sleeperLeague').addEventListener('change',async()=>{
+      if(!document.getElementById('sleeperLeague')?.value)return;
+      try{await useSelectedLeague()}catch(error){setStatus(String(error?.message||error),'error')}
     });
     document.getElementById('sleeperManual').addEventListener('click',useManual);
   }
