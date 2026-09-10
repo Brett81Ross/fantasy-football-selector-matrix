@@ -19,6 +19,11 @@
     return Number.isInteger(n) && n > 0 ? n : fallback;
   }
 
+  function nonNegativeNumber(value, fallback = null) {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  }
+
   function uniqueIds(values) {
     return [...new Set((Array.isArray(values) ? values : []).map(text).filter(Boolean))];
   }
@@ -30,17 +35,22 @@
     return value;
   }
 
-  function normalizeRoster(raw) {
+  function normalizeRoster(raw, waiverBudgetTotal = null) {
     const reservePlayerIds = uniqueIds(raw?.reservePlayerIds);
     const playerIds = uniqueIds([...(Array.isArray(raw?.playerIds) ? raw.playerIds : []), ...reservePlayerIds]);
     const playerSet = new Set(playerIds);
     const starterPlayerIds = uniqueIds(raw?.starterPlayerIds).filter(id => playerSet.has(id));
+    const waiverBudgetUsed = nonNegativeNumber(raw?.waiverBudgetUsed, 0);
+    const total = nonNegativeNumber(waiverBudgetTotal, null);
     return {
       rosterId: text(raw?.rosterId),
       ownerId: text(raw?.ownerId) || null,
       playerIds,
       starterPlayerIds,
-      reservePlayerIds: reservePlayerIds.filter(id => playerSet.has(id))
+      reservePlayerIds: reservePlayerIds.filter(id => playerSet.has(id)),
+      waiverBudgetUsed,
+      waiverBudgetRemaining: total === null ? null : Math.max(0, total - waiverBudgetUsed),
+      waiverPosition: positiveInt(raw?.waiverPosition, 0) || null
     };
   }
 
@@ -48,8 +58,11 @@
     if (!input.league || typeof input.league !== 'object') throw new Error('LeagueSnapshot requires league settings');
     const league = clone(input.league);
     if (!text(league.leagueId)) throw new Error('LeagueSnapshot requires leagueId');
+    const waiverBudgetTotal = nonNegativeNumber(league.waiverBudgetTotal, null);
+    league.waiverBudgetTotal = waiverBudgetTotal;
+    league.waiverType = text(league.waiverType).toLowerCase() || (waiverBudgetTotal === null ? 'unknown' : 'faab');
 
-    const rosters = (Array.isArray(input.rosters) ? input.rosters : []).map(normalizeRoster);
+    const rosters = (Array.isArray(input.rosters) ? input.rosters : []).map(roster => normalizeRoster(roster, waiverBudgetTotal));
     const rosterIds = new Set();
     for (const roster of rosters) {
       if (!roster.rosterId) throw new Error('LeagueSnapshot roster requires rosterId');
