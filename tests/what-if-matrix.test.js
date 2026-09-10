@@ -50,7 +50,7 @@ test('START_SIT evaluates the requested legal swap without mutating canonical st
   assert.equal(result.scenario.type,'START_SIT');
   assert.equal(result.deltas.lineupEdge,7);
   assert.equal(result.recommendation,'IMPROVES TEAM');
-  assert.deepEqual(result.simulatedSnapshot.rosters.find(r=>r.rosterId==='1').starterPlayerIds.sort(),['R2','T1','W1'].sort());
+  assert.deepEqual([...result.simulatedSnapshot.rosters.find(r=>r.rosterId==='1').starterPlayerIds].sort(),['R2','T1','W1'].sort());
   assert.equal(JSON.stringify(source),before);
 });
 
