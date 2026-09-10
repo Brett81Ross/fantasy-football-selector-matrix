@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
 'use strict';
 function num(v,f=0){const n=Number(v);return Number.isFinite(n)?n:f}
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function filterWaiverCandidates(players,snapshot){
   const eligible=(Array.isArray(players)?players:[]).filter(p=>num(p?.games)>=4&&num(p?.metrics?.opportunity)>=45);
   if(!snapshot||!Array.isArray(snapshot.freeAgentPlayerIds))return eligible;
