@@ -1,0 +1,17 @@
+name: Health Version Hotfix QA
+on:
+  push:
+    branches:
+      - hotfix-v1.6.0-health-version
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test tests/release-candidate-static.test.js
+      - run: node --test tests/*.test.js
+      # Temporary branch-only workflow; remove after hotfix verification.
