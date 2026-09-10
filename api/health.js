@@ -1,4 +1,4 @@
-const VERSION='1.5.5';
+const VERSION='1.6.0';
 const {buildNflSourcePolicy}=require('./nfl-source-policy');
 const SOURCE_POLICY=buildNflSourcePolicy(new Date(),VERSION);
 const lastSuccess={roster:null,performance:null,scoreboard:null};
