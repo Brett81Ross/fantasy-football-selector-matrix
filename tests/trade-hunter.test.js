@@ -93,11 +93,17 @@ test('marks buy-low and sell-high signals when market and rest-of-season values 
 });
 
 test('trade recommendations include expected improvement risk confidence and rationale', () => {
+  // Use a legal, complete roster shape because ABL-33 now evaluates real before/after lineup impact.
   const snap=makeSnapshot([
-    {rosterId:'1',playerIds:['R1','W1','W2','W3']},
-    {rosterId:'2',playerIds:['R2','R3','W4']}
+    {rosterId:'1',playerIds:['Q1','R1','R2','W1','W2','W3','W4','T1']},
+    {rosterId:'2',playerIds:['Q2','R3','R4','R5','W5','W6','T2']}
   ]);
-  const values={R1:{position:'RB',value:45},W1:{position:'WR',value:85},W2:{position:'WR',value:80},W3:{position:'WR',value:76},R2:{position:'RB',value:85},R3:{position:'RB',value:75},W4:{position:'WR',value:45}};
+  const values={
+    Q1:{position:'QB',value:75,projection:18},R1:{position:'RB',value:48,projection:9},R2:{position:'RB',value:46,projection:8},
+    W1:{position:'WR',value:92,projection:18},W2:{position:'WR',value:88,projection:17},W3:{position:'WR',value:83,projection:15},W4:{position:'WR',value:78,projection:14},T1:{position:'TE',value:70,projection:11},
+    Q2:{position:'QB',value:74,projection:17},R3:{position:'RB',value:88,projection:17},R4:{position:'RB',value:82,projection:15},R5:{position:'RB',value:76,projection:13},
+    W5:{position:'WR',value:48,projection:8},W6:{position:'WR',value:44,projection:7},T2:{position:'TE',value:69,projection:10}
+  };
   const [trade]=findTradeOpportunities(snap,'1',values);
   assert.equal(typeof trade.expectedImprovement,'number');
   assert.equal(typeof trade.risk,'number');
