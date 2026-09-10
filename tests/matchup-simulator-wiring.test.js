@@ -20,6 +20,6 @@ test('browser runtime loads Matchup Simulator after confidence and lineup depend
 test('Matchup Simulator wiring does not change version authority or deployment policy',()=>{
  const app=fs.readFileSync(path.join(__dirname,'..','api','app.js'),'utf8');
  const vercel=fs.readFileSync(path.join(__dirname,'..','vercel.json'),'utf8');
- assert.match(app,/const VERSION='1\.5\.5'/);
+ assert.match(app,/const VERSION='1\.6\.0'/);
  assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
 });
