@@ -100,6 +100,7 @@
     let leagues = [];
     let pool = [];
     let sleeperDirectory = null;
+    let sleeperToMatrix = new Map();
 
     if (!fetchImpl) throw new Error('Sleeper provider requires fetch');
 
@@ -117,8 +118,20 @@
       return new Map(pool.map(player => [text(player.id), player]));
     }
 
+    function rebuildSleeperCrosswalk() {
+      const next = new Map();
+      for (const player of pool) {
+        const sleeperId = text(player?.sleeperId ?? player?.sleeper_id);
+        const matrixId = text(player?.id);
+        if (sleeperId && matrixId) next.set(sleeperId, matrixId);
+      }
+      sleeperToMatrix = next;
+    }
+
     function resolveSleeperPlayerId(item) {
       const rawId = text(item?.player_id);
+      const direct = sleeperToMatrix.get(rawId);
+      if (direct) return direct;
       const metadata = item?.metadata && typeof item.metadata === 'object' ? item.metadata : {};
       const rawPosition = text(metadata.position).toUpperCase();
       const position = canonicalType(rawPosition);
@@ -156,6 +169,8 @@
     function resolveRosterPlayerId(rawId, directory) {
       const id = text(rawId);
       if (!id) return '';
+      const direct = sleeperToMatrix.get(id);
+      if (direct) return direct;
       if (playerMap().has(id)) return id;
       const entry = directory && typeof directory === 'object' ? directory[id] : null;
       if (!entry || typeof entry !== 'object') return id;
@@ -287,6 +302,7 @@
         username = text(input?.username);
         season = positiveInt(input?.season, new Date().getUTCFullYear());
         pool = Array.isArray(input?.playerPool) ? clone(input.playerPool) : [];
+        rebuildSleeperCrosswalk();
         sleeperDirectory = null;
         if (!username) throw new Error('Sleeper username is required');
         let resolved;
