@@ -22,6 +22,7 @@ This batch builds on the existing Sleeper sync, Season Intelligence, Roster Doct
 - Every recommendation must degrade safely when upstream data is stale or unavailable.
 - Prefer deterministic, explainable scoring over opaque model outputs.
 - No payment integration in this batch; ABL-36 only defines the Pro boundary and entitlement hooks.
+- Do not add a new database or durable backend solely for this batch.
 
 ## Shared Architecture
 
@@ -78,7 +79,7 @@ Make health reporting reflect the same fallback chain and runtime behavior as th
 
 - Extract or share the nflverse source-selection logic used by `api/nfl-data.js` so `api/health.js` tests the same candidate feeds in the same order.
 - Health states: `LIVE`, `DEGRADED`, `STALE`, `OFFLINE`.
-- Record last successful roster, performance, and scoreboard timestamps.
+- Record request-time source freshness plus the latest successful timestamp available from the existing runtime/cache; do not add durable storage just for health history.
 - Distinguish primary-feed failure with successful fallback from total outage.
 - ESPN scoreboard health must be based on the actual request behavior used by the runtime, not a separate probe that can produce false 403s.
 
@@ -127,7 +128,7 @@ Estimate the user's weekly win probability and identify the highest-impact legal
 
 ### Design
 
-Use deterministic Monte Carlo or sampled distribution simulation from each starter's floor, average, ceiling, volatility, status, and opponent context. Reuse current lineup optimizer and opponent snapshot.
+Use a deterministic seeded Monte Carlo simulation. Each starter is sampled from a bounded distribution derived from floor, average, ceiling, volatility, status, and opponent context. The same canonical inputs and seed must produce the same result in tests and replays. Reuse the current lineup optimizer and opponent snapshot rather than creating a second lineup model.
 
 Outputs:
 
