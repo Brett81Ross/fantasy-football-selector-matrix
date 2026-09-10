@@ -96,7 +96,21 @@
     panel.innerHTML=`<div class="season-card season-action" data-tone="${toneForRisk(w.risk)}"><div class="season-kicker">WAIVER ASSASSIN · PRIORITY ${esc(w.priority)}</div><div class="season-title">ADD ${esc(getPlayerName(w.addPlayerId,values))} → DROP ${esc(getPlayerName(w.dropPlayerId,values))}</div><div class="season-meta">${esc(w.reason)}</div><span class="season-pill">${esc(w.classification)}</span><span class="season-pill">${esc(w.confidence)}% confidence</span></div>${faab}`;
   }
 
-  function renderTrade(panel,plan,values){const t=plan.tradeOpportunity;if(!t){panel.innerHTML='<div class="season-empty">No trade currently clears the complementary-needs threshold.</div>';return}panel.innerHTML=`<div class="season-card"><div class="season-kicker">TRADE HUNTER</div><div class="season-title">Give ${(t.givePlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')} → Get ${(t.getPlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')}</div><div class="season-meta">${esc(t.reason)}</div><span class="season-pill">+${esc(t.expectedImprovement)} expected improvement</span><span class="season-pill">${esc(t.confidence)}% confidence</span></div>`;}
+  function renderTrade(panel,plan,values){
+    const t=plan.tradeOpportunity;
+    if(!t){panel.innerHTML='<div class="season-empty">No trade currently improves your roster enough to clear the Trade Analyzer threshold.</div>';return}
+    const analysis=t.analysis||t;
+    const fairness=t.fairness||analysis.fairness||{};
+    const benefit=t.rosterBenefit||analysis.rosterBenefit||{};
+    const before=t.before||analysis.before||{};
+    const after=t.after||analysis.after||{};
+    const deltas=t.deltas||analysis.deltas||{};
+    const signed=(value,digits=1)=>{const n=round(value,digits);return `${n>0?'+':''}${n}`};
+    const playoff=deltas.playoffOutlook===null
+      ? ''
+      : `<div class="season-stat"><b>${esc(before.playoffOutlook??'—')} → ${esc(after.playoffOutlook??'—')}</b><span>PLAYOFF ${esc(signed(deltas.playoffOutlook))}</span></div>`;
+    panel.innerHTML=`<div class="season-card season-action" data-tone="${toneForRisk(t.risk)}"><div class="season-kicker">TRADE ANALYZER · RECOMMENDATION ONLY</div><div class="season-title">Give ${(t.givePlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')} → Get ${(t.getPlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')}</div><div class="season-meta">${esc(t.reason)}</div><div class="season-grid" style="margin-top:10px"><div class="season-stat"><b>${esc(fairness.label||'UNKNOWN')}</b><span>FAIRNESS</span></div><div class="season-stat"><b>${esc(benefit.label||'UNKNOWN')}</b><span>ROSTER BENEFIT</span></div></div><div class="season-grid" style="margin-top:8px"><div class="season-stat"><b>${esc(before.lineupPoints??'—')} → ${esc(after.lineupPoints??'—')}</b><span>LINEUP ${esc(signed(deltas.lineupPoints))}</span></div><div class="season-stat"><b>${esc(before.restOfSeasonValue??'—')} → ${esc(after.restOfSeasonValue??'—')}</b><span>ROS VALUE ${esc(signed(deltas.restOfSeasonValue))}</span></div><div class="season-stat"><b>${esc(before.depthResilience??'—')} → ${esc(after.depthResilience??'—')}</b><span>DEPTH ${esc(signed(deltas.depthResilience))}</span></div>${playoff}</div><span class="season-pill">${esc(t.confidence)}% confidence</span><span class="season-pill">Risk ${esc(round(t.risk*100))}%</span><span class="season-pill">Roster edge ${esc(signed(benefit.compositeEdge))}</span></div>`;
+  }
 
   function renderOpponent(panel,plan){const o=plan.opponent;if(!o){panel.innerHTML='<div class="season-empty">Current-week opponent data is not available yet.</div>';return}panel.innerHTML=`<div class="season-card"><div class="season-kicker">OPPONENT EXPLOITER · WEEK ${esc(o.week)}</div><div class="season-title">Primary vulnerability: ${esc(o.primaryVulnerability?.position||'—')}</div><div class="season-meta">${esc(o.primaryVulnerability?.reason||'No clear vulnerability detected.')}</div></div><div class="season-card"><div class="season-kicker">POSITION EDGES</div><div class="season-meta">${o.positionEdges.map(e=>`${esc(e.position)}: ${e.edge>=0?'+':''}${esc(e.edge)}`).join(' · ')}</div></div>`;}
 
