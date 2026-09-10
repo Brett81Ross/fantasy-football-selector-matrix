@@ -2,10 +2,13 @@
   const playerStatus = typeof module === 'object' && module.exports
     ? require('./player-status')
     : root.FFMPlayerStatus;
-  const api = factory(playerStatus);
+  const dataConfidence = typeof module === 'object' && module.exports
+    ? require('./data-confidence')
+    : root.FFMDataConfidence;
+  const api = factory(playerStatus, dataConfidence);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.FFMLineupOptimizer = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (playerStatus) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (playerStatus, dataConfidence) {
   'use strict';
 
   function text(value) {
@@ -61,6 +64,9 @@
     const risk = playerStatus?.statusRisk
       ? playerStatus.statusRisk(normalizedStatus, snapshot?.freshness || {})
       : { risk:num(normalizedStatus.severity), confidenceMultiplier:1, available:normalizedStatus.available !== false };
+    const confidenceAssessment = dataConfidence?.assessPlayerConfidence
+      ? dataConfidence.assessPlayerConfidence({ ...raw, id:playerId }, snapshot, { ownershipState:'known' })
+      : { score:100 * num(risk.confidenceMultiplier, 0.5) };
     const known = normalizedStatus.category !== 'UNKNOWN';
     const availability = normalizedStatus.available !== false;
     const scorePenalty = known ? risk.risk * 0.25 : 0;
@@ -74,7 +80,7 @@
       statusLabel:normalizedStatus.label || normalizedStatus.category,
       available:availability,
       risk:round(risk.risk),
-      confidence:round(100 * num(risk.confidenceMultiplier, 0.5), 1)
+      confidence:round(confidenceAssessment.score, 1)
     };
   }
 
