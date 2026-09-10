@@ -1,4 +1,4 @@
-const VERSION='1.5.5';
+const VERSION='1.6.0';
 
 module.exports=async function handler(req,res){
   try{
