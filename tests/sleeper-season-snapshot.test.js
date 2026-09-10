@@ -8,6 +8,7 @@ function fetchFactory() {
     ['https://api.sleeper.app/v1/user/U1/leagues/nfl/2026', [{ league_id:'L1', name:'Season League', season:'2026', total_rosters:2, draft_id:'D1' }]],
     ['https://api.sleeper.app/v1/league/L1', {
       league_id:'L1', name:'Season League', season:'2026', total_rosters:2,
+      settings:{ waiver_budget:100, waiver_type:2 },
       scoring_settings:{ rec:1 }, roster_positions:['QB','RB','WR','TE','FLEX','BN','IR'], draft_id:'D1'
     }],
     ['https://api.sleeper.app/v1/draft/D1', {
@@ -16,8 +17,8 @@ function fetchFactory() {
     }],
     ['https://api.sleeper.app/v1/state/nfl', { season:'2026', season_type:'regular', week:3 }],
     ['https://api.sleeper.app/v1/league/L1/rosters', [
-      { roster_id:1, owner_id:'U1', players:['S1','S2'], starters:['S1'], reserve:['S2'] },
-      { roster_id:2, owner_id:'U2', players:['S3'], starters:['S3'], reserve:[] }
+      { roster_id:1, owner_id:'U1', players:['S1','S2'], starters:['S1'], reserve:['S2'], settings:{waiver_budget_used:37,waiver_position:4} },
+      { roster_id:2, owner_id:'U2', players:['S3'], starters:['S3'], reserve:[], settings:{waiver_budget_used:12,waiver_position:1} }
     ]],
     ['https://api.sleeper.app/v1/league/L1/matchups/3', [
       { roster_id:1, matchup_id:44, starters:['S1'] },
@@ -52,7 +53,14 @@ test('Sleeper season snapshot uses current rosters, identifies this-week opponen
   assert.equal(snapshot.opponentRosterId, '2');
   assert.deepEqual([...snapshot.ownedPlayerIds].sort(), ['M1','M2','M3']);
   assert.deepEqual(snapshot.freeAgentPlayerIds, ['M4']);
-  assert.deepEqual(snapshot.rosters.find(r=>r.rosterId==='1').reservePlayerIds, ['M2']);
+  const mine=snapshot.rosters.find(r=>r.rosterId==='1');
+  assert.deepEqual(mine.reservePlayerIds, ['M2']);
   assert.equal(snapshot.playerStatuses.M2.raw, 'Questionable');
   assert.equal(snapshot.freshness.status, 'fresh');
+
+  assert.equal(snapshot.league.waiverBudgetTotal,100);
+  assert.equal(snapshot.league.waiverType,'faab');
+  assert.equal(mine.waiverBudgetUsed,37);
+  assert.equal(mine.waiverBudgetRemaining,63);
+  assert.equal(mine.waiverPosition,4);
 });
