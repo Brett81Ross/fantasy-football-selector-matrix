@@ -1,10 +1,11 @@
 (function (root, factory) {
   const rosterDoctor = typeof module === 'object' && module.exports ? require('./roster-doctor') : root.FFMRosterDoctor;
   const playerStatus = typeof module === 'object' && module.exports ? require('./player-status') : root.FFMPlayerStatus;
-  const api = factory(rosterDoctor, playerStatus);
+  const dataConfidence = typeof module === 'object' && module.exports ? require('./data-confidence') : root.FFMDataConfidence;
+  const api = factory(rosterDoctor, playerStatus, dataConfidence);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.FFMTradeHunter = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (rosterDoctor, playerStatus) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (rosterDoctor, playerStatus, dataConfidence) {
   'use strict';
 
   const text=value=>value==null?'':String(value).trim();
@@ -21,12 +22,15 @@
     const raw=values.get(id)||{};
     const status=playerStatus.normalizePlayerStatus(snapshot?.playerStatuses?.[id]||{});
     const risk=playerStatus.statusRisk(status,snapshot?.freshness||{});
+    const confidenceAssessment=dataConfidence?.assessPlayerConfidence
+      ? dataConfidence.assessPlayerConfidence({...raw,id},snapshot,{ownershipState:'known'})
+      : {score:risk.confidenceMultiplier*100};
     return {
       id,name:text(raw.name)||id,position:pos(raw.position),
       value:num(raw.restOfSeasonValue,num(raw.value,num(raw.projection))),
       marketValue:num(raw.marketValue,num(raw.value,num(raw.projection))),
       restOfSeasonValue:num(raw.restOfSeasonValue,num(raw.value,num(raw.projection))),
-      risk:risk.risk,confidence:round(risk.confidenceMultiplier*100,1)
+      risk:risk.risk,confidence:round(confidenceAssessment.score,1)
     };
   }
 
