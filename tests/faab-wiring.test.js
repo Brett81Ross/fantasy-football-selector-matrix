@@ -47,7 +47,7 @@ test('ABL-31 wiring preserves version deployment lock and no service-worker regi
  const app=read('api/app.js');
  const ui=read('season-intelligence.js');
  const vercel=read('vercel.json');
- assert.match(app,/const VERSION='1\.5\.5'/);
+ assert.match(app,/const VERSION='1\.6\.0'/);
  assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
  assert.doesNotMatch(ui,/serviceWorker\.register|Notification\.requestPermission/);
 });
