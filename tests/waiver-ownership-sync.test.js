@@ -26,6 +26,18 @@ test('stale last-known-good snapshot still excludes rostered players', () => {
   assert.deepEqual(result.map(p => p.id), ['FA-1']);
 });
 
+test('contradictory snapshot never treats an explicitly owned player as a free agent', () => {
+  const result = filterWaiverCandidates(players, {
+    ...snapshot,
+    freeAgentPlayerIds: ['TE-OTHER', 'FA-1'],
+    rosters: [
+      { rosterId:'1', playerIds:['QB-MINE'] },
+      { rosterId:'2', playerIds:['TE-OTHER'] }
+    ]
+  });
+  assert.deepEqual(result.map(p => p.id), ['FA-1']);
+});
+
 test('without a league snapshot it remains a generic watchlist', () => {
   const result = filterWaiverCandidates(players, null);
   assert.deepEqual(result.map(p => p.id), ['QB-MINE', 'TE-OTHER', 'FA-1']);
