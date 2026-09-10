@@ -9,9 +9,13 @@ test('deployment remains locked',()=>{
   assert.equal(config.git?.deploymentEnabled,false);
 });
 
-test('version authority remains v1.6.0 in app shell',()=>{
+test('version authority remains v1.6.0 across app and health surfaces',()=>{
   const app=fs.readFileSync(path.join(root,'api/app.js'),'utf8');
+  const health=fs.readFileSync(path.join(root,'api/health.js'),'utf8');
+  const version=fs.readFileSync(path.join(root,'VERSION'),'utf8').trim();
   assert.match(app,/const VERSION='1\.6\.0'/);
+  assert.match(health,/const VERSION='1\.6\.0'/);
+  assert.equal(version,'1.6.0');
 });
 
 test('universal provider runtime is loaded and hard-coded league profile is not',()=>{
