@@ -54,7 +54,9 @@ test('Trade Hunter ranks accepted deals by roster-benefit composite edge before 
   for(let i=1;i<trades.length;i+=1){
     const previous=trades[i-1];
     const current=trades[i];
-    assert.ok(previous.rosterBenefit.compositeEdge>=current.rosterBenefit.compositeEdge || previous.confidence>=current.confidence);
+    const prevEdge=previous.rosterBenefit.compositeEdge;
+    const currEdge=current.rosterBenefit.compositeEdge;
+    assert.ok(prevEdge>currEdge || (prevEdge===currEdge && previous.confidence>=current.confidence));
   }
 });
 
@@ -63,4 +65,40 @@ test('Trade Hunter source depends on the pure Trade Analyzer rather than duplica
   assert.match(source,/require\('\.\/trade-analyzer'\)/);
   assert.match(source,/tradeAnalyzer\.analyzeTrade/);
   assert.match(source,/HURTS_TEAM/);
+});
+
+test('browser loads Trade Analyzer after its dependencies and before Trade Hunter',()=>{
+  const app=fs.readFileSync(path.join(root,'api/app.js'),'utf8');
+  const ros=app.indexOf('season-core/rest-of-season-value.js');
+  const lineup=app.indexOf('season-core/lineup-optimizer.js');
+  const analyzer=app.indexOf('season-core/trade-analyzer.js');
+  const hunter=app.indexOf('season-core/trade-hunter.js');
+  const weekly=app.indexOf('season-core/weekly-attack-plan.js');
+  assert.ok(ros>=0&&lineup>=0&&analyzer>=0&&hunter>=0&&weekly>=0);
+  assert.ok(ros<analyzer);
+  assert.ok(lineup<analyzer);
+  assert.ok(analyzer<hunter);
+  assert.ok(analyzer<weekly);
+});
+
+test('Season Intelligence visibly separates fairness from roster benefit and shows before-after trade metrics',()=>{
+  const ui=fs.readFileSync(path.join(root,'season-intelligence.js'),'utf8');
+  for(const label of ['FAIRNESS','ROSTER BENEFIT','LINEUP','ROS VALUE','DEPTH']) assert.match(ui,new RegExp(label));
+  assert.match(ui,/PLAYOFF/);
+  assert.match(ui,/playoffOutlook/);
+  assert.match(ui,/===null/);
+});
+
+test('ABL-33 keeps release guardrails and recommendation-only trade behavior intact',()=>{
+  const vercel=fs.readFileSync(path.join(root,'vercel.json'),'utf8');
+  const app=fs.readFileSync(path.join(root,'api/app.js'),'utf8');
+  const analyzer=fs.readFileSync(path.join(root,'season-core/trade-analyzer.js'),'utf8');
+  const hunter=fs.readFileSync(path.join(root,'season-core/trade-hunter.js'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'season-intelligence.js'),'utf8');
+  assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
+  assert.match(app,/const VERSION='1\.5\.5'/);
+  assert.doesNotMatch(analyzer,/serviceWorker\.register/);
+  assert.doesNotMatch(hunter,/serviceWorker\.register/);
+  assert.doesNotMatch(ui,/serviceWorker\.register/);
+  assert.doesNotMatch(`${analyzer}\n${hunter}\n${ui}`,/(submit|execute|accept|post).*trade/i);
 });
