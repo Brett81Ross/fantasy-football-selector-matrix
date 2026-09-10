@@ -66,3 +66,8 @@ test('ABL-36 keeps release payment service-worker and transaction guardrails int
   assert.doesNotMatch(ui,/navigator\.serviceWorker\.register/);
   assert.doesNotMatch(ui,/submitTrade|executeTrade|addRosterPlayer|dropRosterPlayer/i);
 });
+
+test('Report Card tab interception prevents the legacy Season Intelligence handler from overwriting the report',()=>{
+  const ui=read('season-report-card-ui.js');
+  assert.match(ui,/stopImmediatePropagation\(\)/,'Report Card tab must stop the legacy bubbling handler before it can render the wrong fallback view');
+});
