@@ -43,7 +43,7 @@
     </style><div class="season-intel-head"><div><h3>Season Intelligence</h3><p>Maximum Edge mode · recommendations only · no automatic roster moves</p></div><span id="seasonFreshness" class="season-badge">WAITING</span></div><div class="season-tabs" id="seasonTabs"></div><div class="season-panel" id="seasonPanel"><div class="season-empty">Connect a supported fantasy league to build your Weekly Attack Plan.</div></div>`;
     const footer=document.querySelector('footer');
     if(footer?.parentNode)footer.parentNode.insertBefore(wrap,footer);else document.body.appendChild(wrap);
-    const tabs=['Weekly Attack Plan','Command Center','Roster Doctor','Waiver Assassin','Trade Hunter','Opponent Exploiter','Player Status'];
+    const tabs=['Weekly Attack Plan','Command Center','Roster Doctor','Waiver Assassin','Trade Hunter','Playoff Path','Opponent Exploiter','Player Status'];
     document.getElementById('seasonTabs').innerHTML=tabs.map((t,i)=>`<button class="season-tab${i===0?' active':''}" data-season-tab="${esc(t)}">${esc(t)}</button>`).join('');
     document.getElementById('seasonTabs').addEventListener('click',e=>{const b=e.target.closest('[data-season-tab]');if(!b)return;document.querySelectorAll('.season-tab').forEach(x=>x.classList.toggle('active',x===b));render(window.ffmLeagueSnapshot,b.dataset.seasonTab)});
   }
@@ -64,6 +64,7 @@
     if(tab==='Roster Doctor')return renderRoster(panel,plan);
     if(tab==='Waiver Assassin')return renderWaiver(panel,plan,values);
     if(tab==='Trade Hunter')return renderTrade(panel,plan,values);
+    if(tab==='Playoff Path')return renderPlayoffPath(panel,snapshot,values);
     if(tab==='Opponent Exploiter')return renderOpponent(panel,plan);
     return renderStatus(panel,plan,values);
   }
@@ -110,6 +111,25 @@
       ? ''
       : `<div class="season-stat"><b>${esc(before.playoffOutlook??'—')} → ${esc(after.playoffOutlook??'—')}</b><span>PLAYOFF ${esc(signed(deltas.playoffOutlook))}</span></div>`;
     panel.innerHTML=`<div class="season-card season-action" data-tone="${toneForRisk(t.risk)}"><div class="season-kicker">TRADE ANALYZER · RECOMMENDATION ONLY</div><div class="season-title">Give ${(t.givePlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')} → Get ${(t.getPlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')}</div><div class="season-meta">${esc(t.reason)}</div><div class="season-grid" style="margin-top:10px"><div class="season-stat"><b>${esc(fairness.label||'UNKNOWN')}</b><span>FAIRNESS</span></div><div class="season-stat"><b>${esc(benefit.label||'UNKNOWN')}</b><span>ROSTER BENEFIT</span></div></div><div class="season-grid" style="margin-top:8px"><div class="season-stat"><b>${esc(before.lineupPoints??'—')} → ${esc(after.lineupPoints??'—')}</b><span>LINEUP ${esc(signed(deltas.lineupPoints))}</span></div><div class="season-stat"><b>${esc(before.restOfSeasonValue??'—')} → ${esc(after.restOfSeasonValue??'—')}</b><span>ROS VALUE ${esc(signed(deltas.restOfSeasonValue))}</span></div><div class="season-stat"><b>${esc(before.depthResilience??'—')} → ${esc(after.depthResilience??'—')}</b><span>DEPTH ${esc(signed(deltas.depthResilience))}</span></div>${playoff}</div><span class="season-pill">${esc(t.confidence)}% confidence</span><span class="season-pill">Risk ${esc(round(t.risk*100))}%</span><span class="season-pill">Roster edge ${esc(signed(benefit.compositeEdge))}</span></div>`;
+  }
+
+  function renderPlayoffPath(panel,snapshot,values){
+    if(!window.FFMPlayoffPath?.buildPlayoffPath){panel.innerHTML='<div class="season-empty">Playoff Path is initializing.</div>';return}
+    let path;
+    try{path=window.FFMPlayoffPath.buildPlayoffPath(snapshot,snapshot.myRosterId,values)}
+    catch(error){panel.innerHTML=`<div class="season-empty">Playoff Path needs more league data: ${esc(error?.message||error)}</div>`;return}
+    const top=path.leverageWeeks?.[0]||null;
+    const primary=path.playoffProbability!==null
+      ? `<div class="season-stat"><b>${esc(path.playoffProbability)}%</b><span>PLAYOFF PROBABILITY</span></div>`
+      : `<div class="season-stat"><b>${esc(path.readinessScore)}/100</b><span>PLAYOFF READINESS</span></div>`;
+    const degraded=path.playoffProbability===null
+      ? `<div class="season-meta">Readiness mode · probability withheld until standings, playoff settings, and remaining schedule are complete.</div>`
+      : '';
+    const target=path.improvementTarget;
+    const weakness=path.biggestWeakness;
+    const leverageTone=top?.label==='MUST-WIN'?'danger':top?.label==='HIGH LEVERAGE'?'warn':'good';
+    const leverage=top?`<div class="season-card season-action" data-tone="${leverageTone}"><div class="season-kicker">${esc(top.label)} · WEEK ${esc(top.week)}</div><div class="season-title">vs roster ${esc(top.opponentRosterId)} · ${esc(top.probabilitySwing)} point playoff swing</div><div class="season-meta">Win path ${esc(top.winPathProbability)}% · loss path ${esc(top.lossPathProbability)}% · matchup win estimate ${esc(top.matchupWinProbability)}%.</div></div>`:'';
+    panel.innerHTML=`<div class="season-card season-action" data-tone="${toneForRisk(path.risk)}"><div class="season-kicker">IMPROVEMENT TARGET</div><div class="season-title">${esc(target?.action||'Protect current roster strengths')}</div><div class="season-meta">${esc(target?.reason||'No major demanded-position weakness is currently flagged.')}</div></div><div class="season-grid" style="margin-top:9px">${primary}<div class="season-stat"><b>${esc(path.scheduleDifficulty?.label||'UNKNOWN')}</b><span>SCHEDULE DIFFICULTY${path.scheduleDifficulty?.score!==null?` · ${esc(path.scheduleDifficulty.score)}/100`:''}</span></div></div><div class="season-card"><div class="season-kicker">BIGGEST PLAYOFF RISK</div><div class="season-title">${esc(weakness?`${weakness.position} · ${weakness.grade}/100`:'No demanded-position weakness flagged')}</div><div class="season-meta">${esc(weakness?.reason||path.reasons?.[0]||'No major roster weakness is currently flagged.')}</div>${degraded}</div>${leverage}<span class="season-pill">${esc(path.confidence)}% confidence</span><span class="season-pill">Risk ${esc(round(path.risk*100))}%</span>${path.currentSeedEstimate?`<span class="season-pill">Current seed #${esc(path.currentSeedEstimate)}</span>`:''}`;
   }
 
   function renderOpponent(panel,plan){const o=plan.opponent;if(!o){panel.innerHTML='<div class="season-empty">Current-week opponent data is not available yet.</div>';return}panel.innerHTML=`<div class="season-card"><div class="season-kicker">OPPONENT EXPLOITER · WEEK ${esc(o.week)}</div><div class="season-title">Primary vulnerability: ${esc(o.primaryVulnerability?.position||'—')}</div><div class="season-meta">${esc(o.primaryVulnerability?.reason||'No clear vulnerability detected.')}</div></div><div class="season-card"><div class="season-kicker">POSITION EDGES</div><div class="season-meta">${o.positionEdges.map(e=>`${esc(e.position)}: ${e.edge>=0?'+':''}${esc(e.edge)}`).join(' · ')}</div></div>`;}
