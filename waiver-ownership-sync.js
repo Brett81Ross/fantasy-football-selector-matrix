@@ -5,12 +5,16 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(root){
 'use strict';
 function num(v,f=0){const n=Number(v);return Number.isFinite(n)?n:f}
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
 function filterWaiverCandidates(players,snapshot){
   const eligible=(Array.isArray(players)?players:[]).filter(p=>num(p?.games)>=4&&num(p?.metrics?.opportunity)>=45);
   if(!snapshot||!Array.isArray(snapshot.freeAgentPlayerIds))return eligible;
   const free=new Set(snapshot.freeAgentPlayerIds.map(String));
-  return eligible.filter(p=>free.has(String(p?.id||'')));
+  const owned=new Set([
+    ...(Array.isArray(snapshot.ownedPlayerIds)?snapshot.ownedPlayerIds:[]),
+    ...(Array.isArray(snapshot.rosters)?snapshot.rosters.flatMap(roster=>Array.isArray(roster?.playerIds)?roster.playerIds:[]):[])
+  ].map(String));
+  return eligible.filter(p=>{const id=String(p?.id||'');return free.has(id)&&!owned.has(id)});
 }
 function watchScore(p){const m=p?.metrics||{};return Math.round(Math.max(0,Math.min(100,num(m.tov)*.48+num(m.trend)*.32+num(m.ceiling)*.2)))}
 function render(){
