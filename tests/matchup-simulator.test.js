@@ -81,7 +81,7 @@ test('an underdog can receive a legal high-upside bench swap when it improves wi
  const result=simulateMatchup(snapshot(),'1',underdogValues,{seed:'upside-swap',iterations:4000,minSwapDelta:0.2});
  const swap=result.recommendedSwaps.find(item=>item.outPlayerId==='W3'&&item.inPlayerId==='W4');
  assert.ok(result.winProbability<50,result.winProbability);
- assert.ok(swap,'expected W3 -> W4 upside swap');
+ assert.ok(swap,JSON.stringify({winProbability:result.winProbability,averageMargin:result.averageMargin,myStarters:result.myLineup.starters.map(x=>x.playerId),bench:result.myLineup.bench.map(x=>x.playerId),recommendedSwaps:result.recommendedSwaps},null,2));
  assert.ok(swap.winProbabilityDelta>0);
  assert.equal(swap.legal,true);
  assert.ok(swap.reason.length>20);
