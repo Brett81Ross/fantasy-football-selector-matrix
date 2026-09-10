@@ -2,10 +2,11 @@
   const rosterDoctor = typeof module === 'object' && module.exports ? require('./roster-doctor') : root.FFMRosterDoctor;
   const lineupOptimizer = typeof module === 'object' && module.exports ? require('./lineup-optimizer') : root.FFMLineupOptimizer;
   const playerStatus = typeof module === 'object' && module.exports ? require('./player-status') : root.FFMPlayerStatus;
-  const api = factory(rosterDoctor, lineupOptimizer, playerStatus);
+  const dataConfidence = typeof module === 'object' && module.exports ? require('./data-confidence') : root.FFMDataConfidence;
+  const api = factory(rosterDoctor, lineupOptimizer, playerStatus, dataConfidence);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.FFMWaiverAssassin = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (rosterDoctor, lineupOptimizer, playerStatus) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (rosterDoctor, lineupOptimizer, playerStatus, dataConfidence) {
   'use strict';
 
   const text = value => value == null ? '' : String(value).trim();
@@ -22,6 +23,9 @@
     const raw=values.get(id)||{};
     const normalized=playerStatus.normalizePlayerStatus(snapshot?.playerStatuses?.[id]||{});
     const risk=playerStatus.statusRisk(normalized,snapshot?.freshness||{});
+    const confidenceAssessment=dataConfidence?.assessPlayerConfidence
+      ? dataConfidence.assessPlayerConfidence({...raw,id},snapshot)
+      : {score:risk.confidenceMultiplier*100};
     return {
       id,
       name:text(raw.name)||id,
@@ -32,7 +36,7 @@
       statusLabel:normalized.label,
       available:normalized.available,
       risk:risk.risk,
-      confidence:round(risk.confidenceMultiplier*100,1)
+      confidence:round(confidenceAssessment.score,1)
     };
   }
 
