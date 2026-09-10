@@ -5,6 +5,7 @@
   function num(v,f=0){const n=Number(v);return Number.isFinite(n)?n:f}
   function round(v,d=1){const p=10**d;return Math.round((num(v)+Number.EPSILON)*p)/p}
   function toneForRisk(risk){return num(risk)>=.7?'danger':num(risk)>=.4?'warn':'good'}
+  function toneForSeverity(severity){return severity==='CRITICAL'?'danger':severity==='HIGH'||severity==='WATCH'?'warn':'good'}
 
   function playerValues(){
     const list=(typeof state!=='undefined'&&Array.isArray(state.players))?state.players:[];
@@ -15,12 +16,18 @@
       const baseline=num(p.avgPoints);
       const trendAdj=(num(m.trend,50)-50)/250;
       const forecast=baseline>0?Math.max(0,baseline*(1+trendAdj)+(num(p.ceiling)-baseline)*.12):Math.max(0,value/6);
-      values[p.id]={id:p.id,name:p.name,position:p.position,team:p.team,value,projection:round(forecast,1),marketValue:value,restOfSeasonValue:value,byeWeek:p.byeWeek||null};
+      values[p.id]={
+        id:p.id,name:p.name,position:p.position,team:p.team,status:p.status,
+        value,projection:round(forecast,1),marketValue:value,restOfSeasonValue:value,
+        byeWeek:p.byeWeek||null,games:p.games,floor:p.floor,ceiling:p.ceiling,
+        yearsExp:p.yearsExp,rookie:p.rookie,metrics:p.metrics||{}
+      };
     }
     return values;
   }
 
   function getPlayerName(id,values){return values?.[id]?.name||id||'—'}
+  function activeTab(){return document.querySelector('.season-tab.active')?.dataset.seasonTab||'Weekly Attack Plan'}
 
   function mount(){
     if(document.getElementById('seasonIntel'))return;
@@ -36,7 +43,7 @@
     </style><div class="season-intel-head"><div><h3>Season Intelligence</h3><p>Maximum Edge mode · recommendations only · no automatic roster moves</p></div><span id="seasonFreshness" class="season-badge">WAITING</span></div><div class="season-tabs" id="seasonTabs"></div><div class="season-panel" id="seasonPanel"><div class="season-empty">Connect a supported fantasy league to build your Weekly Attack Plan.</div></div>`;
     const footer=document.querySelector('footer');
     if(footer?.parentNode)footer.parentNode.insertBefore(wrap,footer);else document.body.appendChild(wrap);
-    const tabs=['Weekly Attack Plan','Roster Doctor','Waiver Assassin','Trade Hunter','Opponent Exploiter','Player Status'];
+    const tabs=['Weekly Attack Plan','Command Center','Roster Doctor','Waiver Assassin','Trade Hunter','Opponent Exploiter','Player Status'];
     document.getElementById('seasonTabs').innerHTML=tabs.map((t,i)=>`<button class="season-tab${i===0?' active':''}" data-season-tab="${esc(t)}">${esc(t)}</button>`).join('');
     document.getElementById('seasonTabs').addEventListener('click',e=>{const b=e.target.closest('[data-season-tab]');if(!b)return;document.querySelectorAll('.season-tab').forEach(x=>x.classList.toggle('active',x===b));render(window.ffmLeagueSnapshot,b.dataset.seasonTab)});
   }
@@ -53,6 +60,7 @@
     badge.textContent=`${freshness} · ${plan.confidence}% CONF`;
     badge.dataset.tone=plan.freshness?.status==='fresh'?'good':plan.freshness?.status==='stale'?'warn':'danger';
     if(tab==='Weekly Attack Plan')return renderWeekly(panel,plan,values);
+    if(tab==='Command Center')return renderCommandCenter(panel,snapshot,values);
     if(tab==='Roster Doctor')return renderRoster(panel,plan);
     if(tab==='Waiver Assassin')return renderWaiver(panel,plan,values);
     if(tab==='Trade Hunter')return renderTrade(panel,plan,values);
@@ -65,12 +73,26 @@
     panel.innerHTML=`<div class="season-grid"><div class="season-stat"><b>${esc(plan.rosterGrade)}</b><span>ROSTER GRADE</span></div><div class="season-stat"><b>${esc(plan.opponent?.projectedMargin??'—')}</b><span>PROJECTED MARGIN</span></div></div><div class="season-card"><div class="season-kicker">BIGGEST WEAKNESS</div><div class="season-title">${esc(weakness?`${weakness.position} · ${weakness.grade}/100`:'No major weakness detected')}</div><div class="season-meta">${esc(weakness?.reason||'Roster balance is currently acceptable relative to league demand.')}</div></div><div class="season-list">${plan.actions.slice(0,8).map(a=>`<div class="season-card season-action" data-tone="${toneForRisk(a.risk)}"><div class="season-kicker">${esc(a.type)} · ${esc(a.confidence)}% CONF · RISK ${esc(round(a.risk*100))}%</div><div class="season-title">${actionHeadline(a,values)}</div><div class="season-meta">${esc(a.reason)}</div></div>`).join('')}</div>`;
   }
   function actionHeadline(a,values){if(a.type==='WAIVER')return `ADD ${getPlayerName(a.addPlayerId,values)} → DROP ${getPlayerName(a.dropPlayerId,values)}`;if(a.type==='TRADE')return `GIVE ${(a.givePlayerIds||[]).map(id=>getPlayerName(id,values)).join(', ')} → GET ${(a.getPlayerIds||[]).map(id=>getPlayerName(id,values)).join(', ')}`;if(a.type==='STATUS')return `${getPlayerName(a.playerId,values)} · ${a.status}`;if(a.type==='LINEUP')return `START ${getPlayerName(a.playerId,values)}`;return a.position?`ATTACK ${a.position}`:a.type;}
+  function renderCommandCenter(panel,snapshot,values){
+    if(!window.FFMInjuryCommandCenter?.buildCommandCenter){panel.innerHTML='<div class="season-empty">Command Center is initializing.</div>';return}
+    const kickoff=window.__FFM_KICKOFF_CONTEXT__||{};
+    let command;
+    try{command=window.FFMInjuryCommandCenter.buildCommandCenter(snapshot,snapshot.myRosterId,values,{...kickoff,now:new Date().toISOString()})}
+    catch(error){panel.innerHTML=`<div class="season-empty">Command Center needs more lineup data: ${esc(error?.message||error)}</div>`;return}
+    if(!command.alerts.length){panel.innerHTML='<div class="season-empty">No starter injury, bye-week, or lock issues need attention right now.</div>';return}
+    panel.innerHTML=`<div class="season-grid"><div class="season-stat"><b>${esc(command.criticalCount)}</b><span>CRITICAL</span></div><div class="season-stat"><b>${esc(command.highCount)}</b><span>HIGH PRIORITY</span></div></div><div class="season-list">${command.alerts.map(a=>`<div class="season-card season-action" data-tone="${toneForSeverity(a.severity)}"><div class="season-kicker">${esc(a.severity)} · ${esc(a.status)} · ${esc(a.lockState)}</div><div class="season-title">${esc(a.name)}${a.actionable&&a.replacementName?` → ${esc(a.replacementName)}`:''}</div><div class="season-meta">${esc(a.reason)}</div><span class="season-pill">${esc(a.confidence)}% confidence</span><span class="season-pill">Risk ${esc(round(a.risk*100))}%</span>${a.kickoffAt?`<span class="season-pill">Kickoff ${esc(new Date(a.kickoffAt).toLocaleString())}</span>`:''}</div>`).join('')}</div>`;
+  }
   function renderRoster(panel,plan){const r=plan.lineup;const weakness=plan.biggestWeakness;panel.innerHTML=`<div class="season-card"><div class="season-kicker">ROSTER DOCTOR</div><div class="season-title">Grade ${esc(plan.rosterGrade)}/100</div><div class="season-meta">Biggest weakness: ${esc(weakness?`${weakness.position} (${weakness.grade}/100)`:'none flagged')}.</div></div><div class="season-card"><div class="season-kicker">OPTIMIZED LINEUP</div><div class="season-meta">${r.starters.map(s=>`${esc(s.slotType)}: <b>${esc(s.name)}</b> · ${esc(s.expectedPoints)} expected`).join('<br>')}</div></div>`;}
   function renderWaiver(panel,plan,values){const w=plan.waiverMove;if(!w){panel.innerHTML='<div class="season-empty">No waiver move currently clears the Maximum Edge threshold.</div>';return}panel.innerHTML=`<div class="season-card season-action" data-tone="${toneForRisk(w.risk)}"><div class="season-kicker">WAIVER ASSASSIN · PRIORITY ${esc(w.priority)}</div><div class="season-title">ADD ${esc(getPlayerName(w.addPlayerId,values))} → DROP ${esc(getPlayerName(w.dropPlayerId,values))}</div><div class="season-meta">${esc(w.reason)}</div><span class="season-pill">${esc(w.classification)}</span><span class="season-pill">${esc(w.confidence)}% confidence</span></div>`;}
   function renderTrade(panel,plan,values){const t=plan.tradeOpportunity;if(!t){panel.innerHTML='<div class="season-empty">No trade currently clears the complementary-needs threshold.</div>';return}panel.innerHTML=`<div class="season-card"><div class="season-kicker">TRADE HUNTER</div><div class="season-title">Give ${(t.givePlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')} → Get ${(t.getPlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')}</div><div class="season-meta">${esc(t.reason)}</div><span class="season-pill">+${esc(t.expectedImprovement)} expected improvement</span><span class="season-pill">${esc(t.confidence)}% confidence</span></div>`;}
   function renderOpponent(panel,plan){const o=plan.opponent;if(!o){panel.innerHTML='<div class="season-empty">Current-week opponent data is not available yet.</div>';return}panel.innerHTML=`<div class="season-card"><div class="season-kicker">OPPONENT EXPLOITER · WEEK ${esc(o.week)}</div><div class="season-title">Primary vulnerability: ${esc(o.primaryVulnerability?.position||'—')}</div><div class="season-meta">${esc(o.primaryVulnerability?.reason||'No clear vulnerability detected.')}</div></div><div class="season-card"><div class="season-kicker">POSITION EDGES</div><div class="season-meta">${o.positionEdges.map(e=>`${esc(e.position)}: ${e.edge>=0?'+':''}${esc(e.edge)}`).join(' · ')}</div></div>`;}
   function renderStatus(panel,plan,values){const alerts=plan.urgentStatusAlerts||[];if(!alerts.length){panel.innerHTML='<div class="season-empty">No IR, PUP, Questionable, Doubtful, or Out alerts on your roster.</div>';return}panel.innerHTML=`<div class="season-list">${alerts.map(a=>`<div class="season-card season-action" data-tone="${toneForRisk(a.risk)}"><div class="season-kicker">PLAYER STATUS · ${esc(a.status)}</div><div class="season-title">${esc(getPlayerName(a.playerId,values))}</div><div class="season-meta">Confidence ${esc(a.confidence)}% · Risk ${esc(round(a.risk*100))}%${a.stale?' · status data is stale':''}</div></div>`).join('')}</div>`;}
 
-  function init(){mount();window.addEventListener('ffm:league-snapshot',e=>render(e.detail));if(window.ffmLeagueSnapshot)render(window.ffmLeagueSnapshot)}
+  function init(){
+    mount();
+    window.addEventListener('ffm:league-snapshot',e=>render(e.detail,activeTab()));
+    window.addEventListener('ffm:kickoff-context',()=>{if(window.ffmLeagueSnapshot&&activeTab()==='Command Center')render(window.ffmLeagueSnapshot,'Command Center')});
+    if(window.ffmLeagueSnapshot)render(window.ffmLeagueSnapshot);
+  }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
