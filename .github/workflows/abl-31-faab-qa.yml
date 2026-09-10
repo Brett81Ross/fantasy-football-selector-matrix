@@ -13,3 +13,4 @@ jobs:
         with:
           node-version: '20'
       - run: node --test tests/*.test.js
+      # Temporary branch-only workflow; remove after ABL-31 final GREEN.
