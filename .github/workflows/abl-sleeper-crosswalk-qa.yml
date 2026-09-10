@@ -16,5 +16,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Run Sleeper crosswalk regression
-        run: node --test tests/sleeper-id-crosswalk.test.js
+      - name: Run Sleeper and ownership regression suite
+        run: >-
+          node --test
+          tests/sleeper-id-crosswalk.test.js
+          tests/sleeper-season-snapshot.test.js
+          tests/sleeper-provider.test.js
+          tests/sleeper-dogfood.test.js
+          tests/sleeper-live-sync-wiring.test.js
+          tests/season-contracts.test.js
+          tests/season-provider-session.test.js
+          tests/waiver-ownership-sync.test.js
