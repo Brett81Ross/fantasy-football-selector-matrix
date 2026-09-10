@@ -98,6 +98,46 @@
     return 'not_started';
   }
 
+  function sleeperPoints(settings, field) {
+    const whole = nonNegativeNumber(settings?.[field], null);
+    if (whole === null) return null;
+    const decimal = nonNegativeNumber(settings?.[`${field}_decimal`], 0);
+    return Math.round((whole + decimal / 100) * 100) / 100;
+  }
+
+  function sleeperRecord(settings) {
+    const wins = nonNegativeNumber(settings?.wins, null);
+    const losses = nonNegativeNumber(settings?.losses, null);
+    const ties = nonNegativeNumber(settings?.ties, null);
+    if (wins === null || losses === null || ties === null) return null;
+    return {
+      wins: Math.floor(wins),
+      losses: Math.floor(losses),
+      ties: Math.floor(ties),
+      pointsFor: sleeperPoints(settings, 'fpts'),
+      pointsAgainst: sleeperPoints(settings, 'fpts_against')
+    };
+  }
+
+  function scheduleRowsForWeek(week, rawMatchups) {
+    const groups = new Map();
+    for (const item of Array.isArray(rawMatchups) ? rawMatchups : []) {
+      const rosterId = text(item?.roster_id);
+      const matchupId = text(item?.matchup_id);
+      if (!rosterId || !matchupId) continue;
+      if (!groups.has(matchupId)) groups.set(matchupId, []);
+      groups.get(matchupId).push(rosterId);
+    }
+    const rows = [];
+    for (const [matchupId, rosterIds] of groups) {
+      const unique = [...new Set(rosterIds)];
+      if (unique.length !== 2) continue;
+      rows.push({ week, rosterId:unique[0], opponentRosterId:unique[1], matchupId });
+      rows.push({ week, rosterId:unique[1], opponentRosterId:unique[0], matchupId });
+    }
+    return rows;
+  }
+
   function createSleeperDraftProvider(options = {}) {
     const fetchImpl = options.fetchImpl || (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
     let username = '';
@@ -274,7 +314,9 @@
         draftType: mapDraftType(draft?.type),
         rosterSlots: normalizeRosterPositions(raw?.roster_positions),
         waiverBudgetTotal,
-        waiverType: waiverBudgetTotal === null ? 'unknown' : 'faab'
+        waiverType: waiverBudgetTotal === null ? 'unknown' : 'faab',
+        playoffWeekStart: positiveInt(raw?.settings?.playoff_week_start, 0) || null,
+        playoffTeams: positiveInt(raw?.settings?.playoff_teams, 0) || null
       };
       const validation = contracts?.validateLeagueSettings?.(league);
       if (validation && !validation.ok) throw new Error(`invalid Sleeper league: ${validation.errors.join('; ')}`);
@@ -370,6 +412,22 @@
         const matchups = Array.isArray(rawMatchups) ? rawMatchups : [];
         const matchupByRoster = new Map(matchups.map(item => [text(item?.roster_id), item]));
 
+        const expectedWeeks = [];
+        if (week && league.playoffWeekStart && week < league.playoffWeekStart) {
+          for (let futureWeek = week + 1; futureWeek < league.playoffWeekStart; futureWeek += 1) expectedWeeks.push(futureWeek);
+        }
+        const futureResults = await Promise.allSettled(expectedWeeks.map(async futureWeek => ({
+          week: futureWeek,
+          matchups: await fetchJson(`${API}/league/${encodeURIComponent(id)}/matchups/${futureWeek}`, `Sleeper matchups week ${futureWeek}`)
+        })));
+        const loadedWeeks = [];
+        const remainingSchedule = [];
+        for (const result of futureResults) {
+          if (result.status !== 'fulfilled') continue;
+          loadedWeeks.push(result.value.week);
+          remainingSchedule.push(...scheduleRowsForWeek(result.value.week, result.value.matchups));
+        }
+
         let myRosterId = null;
         const rosters = (Array.isArray(rawRosters) ? rawRosters : []).map(rawRoster => {
           const rosterId = text(rawRoster?.roster_id);
@@ -385,7 +443,8 @@
             starterPlayerIds: resolveList(matchup?.starters || rawRoster?.starters),
             reservePlayerIds: resolveList(rawRoster?.reserve),
             waiverBudgetUsed: nonNegativeNumber(rawRoster?.settings?.waiver_budget_used, 0),
-            waiverPosition: positiveInt(rawRoster?.settings?.waiver_position, 0) || null
+            waiverPosition: positiveInt(rawRoster?.settings?.waiver_position, 0) || null,
+            record: sleeperRecord(rawRoster?.settings)
           };
         });
 
@@ -419,6 +478,12 @@
           rosters,
           playerPool: pool,
           playerStatuses,
+          remainingSchedule,
+          scheduleCoverage: {
+            expectedWeeks,
+            loadedWeeks,
+            complete: loadedWeeks.length === expectedWeeks.length
+          },
           freshness: {
             status: 'fresh',
             asOf: new Date().toISOString(),
