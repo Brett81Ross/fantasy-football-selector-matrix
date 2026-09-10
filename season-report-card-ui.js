@@ -118,7 +118,7 @@
       const button=event.target.closest('[data-season-tab]');
       if(!button||button.dataset.seasonTab!==TAB)return;
       event.preventDefault();
-      event.stopPropagation();
+      event.stopImmediatePropagation();
       tabs.querySelectorAll('.season-tab').forEach(tab=>tab.classList.toggle('active',tab===button));
       renderReport(window.ffmLeagueSnapshot);
     },true);
