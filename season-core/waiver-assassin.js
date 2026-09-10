@@ -3,10 +3,11 @@
   const lineupOptimizer = typeof module === 'object' && module.exports ? require('./lineup-optimizer') : root.FFMLineupOptimizer;
   const playerStatus = typeof module === 'object' && module.exports ? require('./player-status') : root.FFMPlayerStatus;
   const dataConfidence = typeof module === 'object' && module.exports ? require('./data-confidence') : root.FFMDataConfidence;
-  const api = factory(rosterDoctor, lineupOptimizer, playerStatus, dataConfidence);
+  const faabOptimizer = typeof module === 'object' && module.exports ? require('./faab-optimizer') : root.FFMFaabOptimizer;
+  const api = factory(rosterDoctor, lineupOptimizer, playerStatus, dataConfidence, faabOptimizer);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.FFMWaiverAssassin = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (rosterDoctor, lineupOptimizer, playerStatus, dataConfidence) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (rosterDoctor, lineupOptimizer, playerStatus, dataConfidence, faabOptimizer) {
   'use strict';
 
   const text = value => value == null ? '' : String(value).trim();
@@ -109,7 +110,7 @@
       if (expectedImprovement <= -8 && cls!=='STASH') continue;
       const confidence=round(Math.max(0,Math.min(100,add.confidence)),1);
       const priority=round(expectedImprovement + confidence*0.08 - add.risk*10,2);
-      moves.push(Object.freeze({
+      const baseMove={
         addPlayerId:add.id,
         dropPlayerId:drop.id,
         targetPosition:add.position,
@@ -122,7 +123,11 @@
         reason:cls==='STASH'
           ? `Stash ${add.name} (${add.statusLabel}) only for future upside; drop ${drop.name} if reserve capacity and roster strategy justify the wait.`
           : `Add ${add.name} and drop ${drop.name}: the swap improves the optimized weekly lineup by ${round(choice.lineupDelta,1)} points and changes season value by ${round(seasonDelta,1)}.`
-      }));
+      };
+      const faab=faabOptimizer?.optimizeFaabBid
+        ? faabOptimizer.optimizeFaabBid(snapshot,id,baseMove,playerValues,{...context,rosterReport:report})
+        : null;
+      moves.push(Object.freeze({...baseMove,faab}));
     }
 
     return Object.freeze(moves.sort((a,b)=>b.priority-a.priority || b.expectedImprovement-a.expectedImprovement || a.addPlayerId.localeCompare(b.addPlayerId)));
