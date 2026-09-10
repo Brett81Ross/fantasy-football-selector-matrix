@@ -21,11 +21,26 @@
     if(strong)strong.textContent=text;
     const s=document.getElementById('dataSeason');if(s&&season)s.textContent=season;
   }
-  function applyPayload(data){
+  function publishKickoffContext(data,sourceHealth='LIVE'){
+    const kickoffsByTeam={};
+    const gameSchedule=Array.isArray(data?.gameSchedule)?data.gameSchedule:[];
+    for(const game of gameSchedule){
+      if(!game?.kickoffAt||!Number.isFinite(Date.parse(game.kickoffAt)))continue;
+      for(const rawTeam of Array.isArray(game?.teams)?game.teams:[]){
+        const team=String(rawTeam||'').trim().toUpperCase();
+        if(team)kickoffsByTeam[team]=new Date(game.kickoffAt).toISOString();
+      }
+    }
+    window.__FFM_KICKOFF_CONTEXT__={kickoffsByTeam,gameSchedule,sourceHealth,generatedAt:data?.generatedAt||null};
+    window.dispatchEvent(new CustomEvent('ffm:kickoff-context',{detail:window.__FFM_KICKOFF_CONTEXT__}));
+  }
+  function applyPayload(data,sourceHealth){
     if(!appReady()||!payloadUsable(data))return false;
     const drafted=state.drafted,compare=state.compare;
     state.players=data.players;state.dataMeta=data;
     if(drafted)state.drafted=drafted;if(compare)state.compare=compare;
+    const health=sourceHealth||((data?.health?.liveFeed==='degraded'||data?.source?.liveError)?'DEGRADED':'LIVE');
+    publishKickoffContext(data,health);
     renderAll();
     return true;
   }
@@ -39,7 +54,7 @@
       const raw=localStorage.getItem(lastGoodKey());if(!raw)return false;
       const saved=JSON.parse(raw),age=Date.now()-Number(saved?.savedAt||0);
       if(!saved?.savedAt||age<0||age>MAX_LAST_GOOD_AGE_MS||!payloadUsable(saved.data)){localStorage.removeItem(lastGoodKey());return false}
-      if(!applyPayload(saved.data))return false;
+      if(!applyPayload(saved.data,'STALE'))return false;
       if(showStatus)status(`NFL DATA STALE · last good update ${ageLabel(age)}`,false,`${saved.data.currentSeason||''} · cached backup`);
       const note=document.getElementById('draftSourceNote');if(note)note.textContent='Live NFL refresh is temporarily unavailable. Showing the most recent validated player data saved on this device.';
       window.__FFM_LAST_LIVE_UPDATE__=saved.data.generatedAt||'';window.__FFM_DATA_HEALTH__={...(saved.data.health||{}),stale:true,lastGoodAgeMs:age};
@@ -63,7 +78,8 @@
       const data=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(data.detail||`HTTP ${r.status}`);
       if(!payloadUsable(data))throw new Error('Player payload incomplete');
-      if(!applyPayload(data))throw new Error('App not ready to apply player payload');
+      const sourceHealth=(data?.health?.liveFeed==='degraded'||data?.source?.liveError)?'DEGRADED':'LIVE';
+      if(!applyPayload(data,sourceHealth))throw new Error('App not ready to apply player payload');
       saveLastGood(data);
       const live=Number(data.liveGames||0),teams=Number(data.health?.teamsLoaded||0),partial=teams<32;
       const draftDegraded=data.health?.performanceFeed==='degraded'||Boolean(data.source?.fallback)||partial;
