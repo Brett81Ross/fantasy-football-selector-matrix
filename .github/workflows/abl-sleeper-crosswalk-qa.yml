@@ -1,0 +1,20 @@
+name: ABL Sleeper Crosswalk QA
+
+on:
+  push:
+    branches:
+      - abl-sleeper-id-crosswalk
+  workflow_dispatch:
+
+jobs:
+  sleeper-crosswalk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run Sleeper crosswalk regression
+        run: node --test tests/sleeper-id-crosswalk.test.js
