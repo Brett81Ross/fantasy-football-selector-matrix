@@ -1,6 +1,10 @@
 (() => {
   'use strict';
 
+  let whatIfResult=null;
+  let whatIfType='START_SIT';
+  let whatIfPartner='';
+
   function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function num(v,f=0){const n=Number(v);return Number.isFinite(n)?n:f}
   function round(v,d=1){const p=10**d;return Math.round((num(v)+Number.EPSILON)*p)/p}
@@ -28,6 +32,11 @@
 
   function getPlayerName(id,values){return values?.[id]?.name||id||'—'}
   function activeTab(){return document.querySelector('.season-tab.active')?.dataset.seasonTab||'Weekly Attack Plan'}
+  function optionList(ids,values,placeholder='Choose player…'){
+    const unique=[...new Set((ids||[]).filter(Boolean))];
+    return `<option value="">${esc(placeholder)}</option>`+unique.map(id=>`<option value="${esc(id)}">${esc(getPlayerName(id,values))}${values?.[id]?.position?` · ${esc(values[id].position)}`:''}</option>`).join('');
+  }
+  function signed(value,digits=1){if(value===null||value===undefined)return'—';const n=round(value,digits);return`${n>0?'+':''}${n}`}
 
   function mount(){
     if(document.getElementById('seasonIntel'))return;
@@ -39,11 +48,12 @@
       .season-intel-head{padding:16px 16px 10px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.season-intel-head h3{margin:0;font-size:17px}.season-intel-head p{margin:4px 0 0;color:var(--muted);font-size:10px;line-height:1.45}.season-badge{font-size:9px;font-weight:950;letter-spacing:.08em;border:1px solid var(--line);border-radius:999px;padding:6px 9px;white-space:nowrap}.season-badge[data-tone="good"]{color:var(--accent);border-color:rgba(57,255,20,.35)}.season-badge[data-tone="warn"]{color:#ffd166}.season-badge[data-tone="danger"]{color:#ff6b6b}
       .season-tabs{display:flex;gap:7px;overflow-x:auto;padding:0 14px 12px;scrollbar-width:none}.season-tabs::-webkit-scrollbar{display:none}.season-tab{flex:0 0 auto;border:1px solid var(--line);background:#0b1710;color:var(--muted);height:34px;padding:0 12px;border-radius:999px;font-size:10px;font-weight:900}.season-tab.active{background:var(--accent);color:#041008;border-color:var(--accent)}
       .season-panel{padding:0 14px 16px}.season-card{border:1px solid var(--line);background:#0a1510;border-radius:14px;padding:12px;margin-top:9px}.season-kicker{font-size:9px;color:var(--accent);font-weight:950;letter-spacing:.12em}.season-title{font-size:14px;font-weight:950;margin-top:3px}.season-meta{font-size:10px;color:var(--muted);line-height:1.45;margin-top:5px}.season-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.season-stat{border:1px solid var(--line);border-radius:12px;padding:10px;background:#08120d}.season-stat b{display:block;font-size:16px}.season-stat span{font-size:9px;color:var(--muted)}.season-action{border-left:3px solid var(--accent);padding-left:10px}.season-action[data-tone="warn"]{border-color:#ffd166}.season-action[data-tone="danger"]{border-color:#ff6b6b}.season-empty{padding:18px 14px;color:var(--muted);font-size:11px}.season-list{display:grid;gap:8px}.season-pill{display:inline-block;font-size:9px;border:1px solid var(--line);border-radius:999px;padding:4px 7px;margin-right:5px;margin-top:6px;color:var(--muted)}
-      @media(max-width:560px){.season-grid{grid-template-columns:1fr}.season-intel-head{align-items:flex-start}}
+      .whatif-controls{display:grid;gap:9px}.whatif-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.whatif-field{display:grid;gap:5px}.whatif-field label{font-size:9px;font-weight:900;color:var(--muted);letter-spacing:.06em}.whatif-field select{width:100%;min-height:46px;border:1px solid var(--line);border-radius:11px;background:#07110b;color:var(--text);padding:0 10px;font-size:12px}.whatif-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.whatif-actions button{min-height:46px;border-radius:11px;border:1px solid var(--line);background:#102017;color:var(--text);font-weight:950}.whatif-actions .primary{background:var(--accent);color:#041008;border-color:var(--accent)}
+      @media(max-width:560px){.season-grid,.whatif-row{grid-template-columns:1fr}.season-intel-head{align-items:flex-start}.whatif-actions{grid-template-columns:1fr 1fr}}
     </style><div class="season-intel-head"><div><h3>Season Intelligence</h3><p>Maximum Edge mode · recommendations only · no automatic roster moves</p></div><span id="seasonFreshness" class="season-badge">WAITING</span></div><div class="season-tabs" id="seasonTabs"></div><div class="season-panel" id="seasonPanel"><div class="season-empty">Connect a supported fantasy league to build your Weekly Attack Plan.</div></div>`;
     const footer=document.querySelector('footer');
     if(footer?.parentNode)footer.parentNode.insertBefore(wrap,footer);else document.body.appendChild(wrap);
-    const tabs=['Weekly Attack Plan','Command Center','Roster Doctor','Waiver Assassin','Trade Hunter','Playoff Path','Opponent Exploiter','Player Status'];
+    const tabs=['Weekly Attack Plan','Command Center','Roster Doctor','Waiver Assassin','Trade Hunter','What-If Matrix','Playoff Path','Opponent Exploiter','Player Status'];
     document.getElementById('seasonTabs').innerHTML=tabs.map((t,i)=>`<button class="season-tab${i===0?' active':''}" data-season-tab="${esc(t)}">${esc(t)}</button>`).join('');
     document.getElementById('seasonTabs').addEventListener('click',e=>{const b=e.target.closest('[data-season-tab]');if(!b)return;document.querySelectorAll('.season-tab').forEach(x=>x.classList.toggle('active',x===b));render(window.ffmLeagueSnapshot,b.dataset.seasonTab)});
   }
@@ -54,6 +64,12 @@
     const badge=document.getElementById('seasonFreshness');
     if(!snapshot){badge.textContent='WAITING';badge.dataset.tone='warn';panel.innerHTML='<div class="season-empty">Connect a supported fantasy league to build your Weekly Attack Plan.</div>';return}
     const values=playerValues();
+    if(tab==='What-If Matrix'){
+      const freshness=String(snapshot.freshness?.status||'unknown').toUpperCase();
+      badge.textContent=`${freshness} · SIMULATION`;
+      badge.dataset.tone=snapshot.freshness?.status==='fresh'?'good':snapshot.freshness?.status==='stale'?'warn':'danger';
+      return renderWhatIf(panel,snapshot,values);
+    }
     let plan;
     try{plan=window.FFMWeeklyAttackPlan.buildWeeklyAttackPlan(snapshot,snapshot.myRosterId,values)}catch(error){badge.textContent='NEEDS DATA';badge.dataset.tone='warn';panel.innerHTML=`<div class="season-empty">Season Intelligence needs more league/player data: ${esc(error?.message||error)}</div>`;return}
     const freshness=String(plan.freshness?.status||'unknown').toUpperCase();
@@ -106,11 +122,50 @@
     const before=t.before||analysis.before||{};
     const after=t.after||analysis.after||{};
     const deltas=t.deltas||analysis.deltas||{};
-    const signed=(value,digits=1)=>{const n=round(value,digits);return `${n>0?'+':''}${n}`};
+    const tradeSigned=(value,digits=1)=>{const n=round(value,digits);return `${n>0?'+':''}${n}`};
     const playoff=deltas.playoffOutlook===null
       ? ''
-      : `<div class="season-stat"><b>${esc(before.playoffOutlook??'—')} → ${esc(after.playoffOutlook??'—')}</b><span>PLAYOFF ${esc(signed(deltas.playoffOutlook))}</span></div>`;
-    panel.innerHTML=`<div class="season-card season-action" data-tone="${toneForRisk(t.risk)}"><div class="season-kicker">TRADE ANALYZER · RECOMMENDATION ONLY</div><div class="season-title">Give ${(t.givePlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')} → Get ${(t.getPlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')}</div><div class="season-meta">${esc(t.reason)}</div><div class="season-grid" style="margin-top:10px"><div class="season-stat"><b>${esc(fairness.label||'UNKNOWN')}</b><span>FAIRNESS</span></div><div class="season-stat"><b>${esc(benefit.label||'UNKNOWN')}</b><span>ROSTER BENEFIT</span></div></div><div class="season-grid" style="margin-top:8px"><div class="season-stat"><b>${esc(before.lineupPoints??'—')} → ${esc(after.lineupPoints??'—')}</b><span>LINEUP ${esc(signed(deltas.lineupPoints))}</span></div><div class="season-stat"><b>${esc(before.restOfSeasonValue??'—')} → ${esc(after.restOfSeasonValue??'—')}</b><span>ROS VALUE ${esc(signed(deltas.restOfSeasonValue))}</span></div><div class="season-stat"><b>${esc(before.depthResilience??'—')} → ${esc(after.depthResilience??'—')}</b><span>DEPTH ${esc(signed(deltas.depthResilience))}</span></div>${playoff}</div><span class="season-pill">${esc(t.confidence)}% confidence</span><span class="season-pill">Risk ${esc(round(t.risk*100))}%</span><span class="season-pill">Roster edge ${esc(signed(benefit.compositeEdge))}</span></div>`;
+      : `<div class="season-stat"><b>${esc(before.playoffOutlook??'—')} → ${esc(after.playoffOutlook??'—')}</b><span>PLAYOFF ${esc(tradeSigned(deltas.playoffOutlook))}</span></div>`;
+    panel.innerHTML=`<div class="season-card season-action" data-tone="${toneForRisk(t.risk)}"><div class="season-kicker">TRADE ANALYZER · RECOMMENDATION ONLY</div><div class="season-title">Give ${(t.givePlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')} → Get ${(t.getPlayerIds||[]).map(id=>esc(getPlayerName(id,values))).join(', ')}</div><div class="season-meta">${esc(t.reason)}</div><div class="season-grid" style="margin-top:10px"><div class="season-stat"><b>${esc(fairness.label||'UNKNOWN')}</b><span>FAIRNESS</span></div><div class="season-stat"><b>${esc(benefit.label||'UNKNOWN')}</b><span>ROSTER BENEFIT</span></div></div><div class="season-grid" style="margin-top:8px"><div class="season-stat"><b>${esc(before.lineupPoints??'—')} → ${esc(after.lineupPoints??'—')}</b><span>LINEUP ${esc(tradeSigned(deltas.lineupPoints))}</span></div><div class="season-stat"><b>${esc(before.restOfSeasonValue??'—')} → ${esc(after.restOfSeasonValue??'—')}</b><span>ROS VALUE ${esc(tradeSigned(deltas.restOfSeasonValue))}</span></div><div class="season-stat"><b>${esc(before.depthResilience??'—')} → ${esc(after.depthResilience??'—')}</b><span>DEPTH ${esc(tradeSigned(deltas.depthResilience))}</span></div>${playoff}</div><span class="season-pill">${esc(t.confidence)}% confidence</span><span class="season-pill">Risk ${esc(round(t.risk*100))}%</span><span class="season-pill">Roster edge ${esc(tradeSigned(benefit.compositeEdge))}</span></div>`;
+  }
+
+  function renderWhatIf(panel,snapshot,values){
+    if(!window.FFMWhatIfMatrix?.simulateScenario){panel.innerHTML='<div class="season-empty">What-If Matrix is initializing.</div>';return}
+    const mine=(snapshot.rosters||[]).find(r=>String(r.rosterId)===String(snapshot.myRosterId));
+    if(!mine){panel.innerHTML='<div class="season-empty">What-If Matrix needs your synced roster identity.</div>';return}
+    const starters=new Set(mine.starterPlayerIds||[]);
+    const bench=(mine.playerIds||[]).filter(id=>!starters.has(id));
+    const others=(snapshot.rosters||[]).filter(r=>String(r.rosterId)!==String(snapshot.myRosterId));
+    if(!whatIfPartner||!others.some(r=>String(r.rosterId)===String(whatIfPartner)))whatIfPartner=String(others[0]?.rosterId||'');
+    const partner=others.find(r=>String(r.rosterId)===String(whatIfPartner));
+    const typeOptions=`<option value="START_SIT"${whatIfType==='START_SIT'?' selected':''}>START/SIT</option><option value="ADD_DROP"${whatIfType==='ADD_DROP'?' selected':''}>ADD/DROP</option><option value="TRADE"${whatIfType==='TRADE'?' selected':''}>TRADE</option>`;
+    let fields='';
+    if(whatIfType==='START_SIT')fields=`<div class="whatif-row"><div class="whatif-field"><label>START</label><select id="whatIfStart">${optionList(bench,values,'Choose bench player…')}</select></div><div class="whatif-field"><label>SIT</label><select id="whatIfSit">${optionList(mine.starterPlayerIds,values,'Choose current starter…')}</select></div></div>`;
+    if(whatIfType==='ADD_DROP')fields=`<div class="whatif-row"><div class="whatif-field"><label>ADD</label><select id="whatIfAdd">${optionList(snapshot.freeAgentPlayerIds,values,'Choose free agent…')}</select></div><div class="whatif-field"><label>DROP</label><select id="whatIfDrop">${optionList(mine.playerIds,values,'Choose roster player…')}</select></div></div>`;
+    if(whatIfType==='TRADE')fields=`<div class="whatif-field"><label>TRADE PARTNER</label><select id="whatIfPartner">${others.map(r=>`<option value="${esc(r.rosterId)}"${String(r.rosterId)===whatIfPartner?' selected':''}>Roster ${esc(r.rosterId)}</option>`).join('')}</select></div><div class="whatif-row"><div class="whatif-field"><label>GIVE</label><select id="whatIfGive">${optionList(mine.playerIds,values,'Choose your player…')}</select></div><div class="whatif-field"><label>GET</label><select id="whatIfGet">${optionList(partner?.playerIds||[],values,'Choose their player…')}</select></div></div>`;
+    const result=whatIfResult;
+    let resultHtml='';
+    if(result){
+      if(!result.valid){resultHtml=`<div class="season-card season-action" data-tone="danger"><div class="season-kicker">SIMULATION REJECTED</div><div class="season-title">No league state was changed</div><div class="season-meta">${(result.errors||[]).map(esc).join('<br>')}</div></div>`;}
+      else{
+        const d=result.deltas||{},before=result.before||{},after=result.after||{};
+        const tone=result.recommendation==='HURTS TEAM'?'danger':result.recommendation==='IMPROVES TEAM'?'good':'warn';
+        const matchup=d.matchupWinProbability===null?'—':`${signed(d.matchupWinProbability)} pts`;
+        resultHtml=`<div class="season-card season-action" data-tone="${tone}"><div class="season-kicker">WHAT-IF RESULT · RECOMMENDATION ONLY</div><div class="season-title">${esc(result.recommendation)}</div><div class="season-meta">Results are labeled IMPROVES TEAM, NEUTRAL, or HURTS TEAM. This simulation never changes your synced league.</div><div class="season-grid" style="margin-top:10px"><div class="season-stat"><b>${esc(before.lineupPoints??'—')} → ${esc(after.lineupPoints??'—')}</b><span>LINEUP EDGE ${esc(signed(d.lineupEdge))}</span></div><div class="season-stat"><b>${esc(before.rosterValue??'—')} → ${esc(after.rosterValue??'—')}</b><span>ROSTER VALUE ${esc(signed(d.rosterValue))}</span></div><div class="season-stat"><b>${esc(before.positionalDepth??'—')} → ${esc(after.positionalDepth??'—')}</b><span>POSITIONAL DEPTH ${esc(signed(d.positionalDepth))}</span></div><div class="season-stat"><b>${before.matchupWinProbability===null?'—':`${esc(before.matchupWinProbability)}%`} → ${after.matchupWinProbability===null?'—':`${esc(after.matchupWinProbability)}%`}</b><span>MATCHUP WIN PROBABILITY ${esc(matchup)}</span></div></div><span class="season-pill">${esc(result.confidence)}% confidence</span><span class="season-pill">Risk ${esc(round(result.risk*100))}%</span></div>`;
+      }
+    }
+    panel.innerHTML=`<div class="season-card"><div class="season-kicker">WHAT-IF MATRIX · SAFE SIMULATION</div><div class="season-title">Test the move before you make it</div><div class="season-meta">The Matrix clones your current synced state in memory. Nothing is sent to Sleeper and Reset Simulation returns immediately to the canonical roster.</div><div class="whatif-controls" style="margin-top:10px"><div class="whatif-field"><label>SCENARIO</label><select id="whatIfType">${typeOptions}</select></div>${fields}<div class="whatif-actions"><button class="primary" id="whatIfRun" type="button">Run Simulation</button><button id="whatIfReset" type="button">Reset Simulation</button></div></div></div>${resultHtml}`;
+    document.getElementById('whatIfType')?.addEventListener('change',e=>{whatIfType=e.target.value;whatIfResult=null;render(snapshot,'What-If Matrix')});
+    document.getElementById('whatIfPartner')?.addEventListener('change',e=>{whatIfPartner=e.target.value;whatIfResult=null;render(snapshot,'What-If Matrix')});
+    document.getElementById('whatIfRun')?.addEventListener('click',()=>{
+      let scenario;
+      if(whatIfType==='START_SIT')scenario={type:'START_SIT',startPlayerId:document.getElementById('whatIfStart')?.value||'',sitPlayerId:document.getElementById('whatIfSit')?.value||''};
+      else if(whatIfType==='ADD_DROP')scenario={type:'ADD_DROP',addPlayerId:document.getElementById('whatIfAdd')?.value||'',dropPlayerId:document.getElementById('whatIfDrop')?.value||''};
+      else scenario={type:'TRADE',counterpartRosterId:whatIfPartner,givePlayerIds:[document.getElementById('whatIfGive')?.value||''],getPlayerIds:[document.getElementById('whatIfGet')?.value||'']};
+      whatIfResult=window.FFMWhatIfMatrix.simulateScenario(snapshot,snapshot.myRosterId,values,scenario,{seed:`ui-what-if:${snapshot.league?.leagueId||'league'}:${snapshot.week||0}`});
+      render(snapshot,'What-If Matrix');
+    });
+    document.getElementById('whatIfReset')?.addEventListener('click',()=>{whatIfResult=null;render(window.ffmLeagueSnapshot,'What-If Matrix')});
   }
 
   function renderPlayoffPath(panel,snapshot,values){
@@ -138,7 +193,7 @@
 
   function init(){
     mount();
-    window.addEventListener('ffm:league-snapshot',e=>render(e.detail,activeTab()));
+    window.addEventListener('ffm:league-snapshot',e=>{whatIfResult=null;render(e.detail,activeTab())});
     window.addEventListener('ffm:kickoff-context',()=>{if(window.ffmLeagueSnapshot&&activeTab()==='Command Center')render(window.ffmLeagueSnapshot,'Command Center')});
     if(window.ffmLeagueSnapshot)render(window.ffmLeagueSnapshot);
   }
