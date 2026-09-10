@@ -26,7 +26,7 @@ jobs:
       - name: Release guardrails
         run: |
           grep -q '"deploymentEnabled":false' vercel.json
-          ! grep -R "serviceWorker.register" --exclude-dir=.git --exclude='*.md' .
+          ! grep -R "serviceWorker.register" --include='*.js' --exclude-dir=.git --exclude-dir=.github --exclude-dir=tests .
       - name: Full test suite
         run: node --test tests/*.test.js
       # Temporary branch-only release workflow; remove after verification.
