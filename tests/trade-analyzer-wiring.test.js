@@ -96,7 +96,7 @@ test('ABL-33 keeps release guardrails and recommendation-only trade behavior int
   const hunter=fs.readFileSync(path.join(root,'season-core/trade-hunter.js'),'utf8');
   const ui=fs.readFileSync(path.join(root,'season-intelligence.js'),'utf8');
   assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
-  assert.match(app,/const VERSION='1\.5\.5'/);
+  assert.match(app,/const VERSION='1\.6\.0'/);
   assert.doesNotMatch(analyzer,/serviceWorker\.register/);
   assert.doesNotMatch(hunter,/serviceWorker\.register/);
   assert.doesNotMatch(ui,/serviceWorker\.register/);
