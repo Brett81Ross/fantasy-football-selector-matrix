@@ -29,7 +29,21 @@ function dstMetrics(){return{production:61,opportunity:64,consistency:60,ceiling
 
 async function loadRoster(){let last;for(const candidate of SOURCE_POLICY.rosterCandidates){try{const src=await firstText([candidate.url]);return{season:candidate.season,...src}}catch(e){last=e}}throw last||new Error('Current roster unavailable')}
 async function loadStats(){let last;for(const candidate of SOURCE_POLICY.statsCandidates){try{const src=await firstText([candidate.url]);return{season:candidate.season,kind:candidate.kind,...src}}catch(e){last=e}}throw last||new Error('Performance data unavailable')}
-async function live(){try{const board=await fetchJson(SOURCE_POLICY.scoreboardUrl,5000);const events=Array.isArray(board?.events)?board.events:[],active=events.filter(e=>e?.status?.type?.state==='in');return{games:active.length,events:active.map(e=>({id:e.id,name:e.name,status:e?.status?.type?.shortDetail||'LIVE'})),season:board?.season?.year||CURRENT_SEASON,week:board?.week?.number||null,error:''}}catch(e){return{games:0,events:[],season:CURRENT_SEASON,week:null,error:String(e?.message||e)}}}
+async function live(){
+  try{
+    const board=await fetchJson(SOURCE_POLICY.scoreboardUrl,5000);
+    const events=Array.isArray(board?.events)?board.events:[];
+    const active=events.filter(e=>e?.status?.type?.state==='in');
+    const gameSchedule=events.map(e=>{
+      const competition=Array.isArray(e?.competitions)?e.competitions[0]:null;
+      const competitors=Array.isArray(competition?.competitors)?competition.competitors:[];
+      const teams=[...new Set(competitors.map(c=>normalizeTeam(c?.team?.abbreviation)).filter(Boolean))];
+      const kickoffAt=e?.date&&Number.isFinite(Date.parse(e.date))?new Date(e.date).toISOString():null;
+      return{id:String(e?.id||''),name:String(e?.name||''),kickoffAt,state:String(e?.status?.type?.state||''),teams};
+    }).filter(game=>game.id&&game.kickoffAt&&game.teams.length);
+    return{games:active.length,events:active.map(e=>({id:e.id,name:e.name,status:e?.status?.type?.shortDetail||'LIVE'})),gameSchedule,season:board?.season?.year||CURRENT_SEASON,week:board?.week?.number||null,error:''};
+  }catch(e){return{games:0,events:[],gameSchedule:[],season:CURRENT_SEASON,week:null,error:String(e?.message||e)}}
+}
 
 async function buildPayload(scoring){
   const hit=cache.get(scoring);if(hit&&hit.expires>Date.now())return hit.payload;
@@ -65,7 +79,7 @@ async function buildPayload(scoring){
   unique.sort((a,b)=>score(b)-score(a));
   const teamsLoaded=new Set(rosterRows.map(r=>normalizeTeam(r.team)).filter(Boolean)).size;
   const sourceFallback=rosterSource.season!==CURRENT_SEASON||Boolean(statsSource.error)||statsSource.kind==='legacy'||(statsSource.season!=null&&statsSource.season!==SOURCE_POLICY.preferredStatsSeason);
-  const payload={version:VERSION,generatedAt:new Date().toISOString(),currentSeason:liveData.season,rosterSeason:rosterSource.season,statsSeason:statsSource.season,scoring,liveGames:liveData.games,liveEvents:liveData.events,health:{online:true,primary:'nflverse',teamsLoaded,rosterFailures:0,performanceFeed:statsSource.error?'degraded':'online',liveFeed:liveData.error?'degraded':'online'},source:{name:'nflverse + ESPN',license:'nflverse CC BY 4.0',live:'ESPN public scoreboard',note:`Current nflverse roster${statsSource.season?` · ${statsSource.season} performance baseline`:' · role-based performance fallback'}${liveData.error?' · live scoreboard degraded':''}`,fallback:sourceFallback,liveError:liveData.error,statsError:statsSource.error||''},players:unique.slice(0,650)};
+  const payload={version:VERSION,generatedAt:new Date().toISOString(),currentSeason:liveData.season,rosterSeason:rosterSource.season,statsSeason:statsSource.season,scoring,liveGames:liveData.games,liveEvents:liveData.events,gameSchedule:liveData.gameSchedule,health:{online:true,primary:'nflverse',teamsLoaded,rosterFailures:0,performanceFeed:statsSource.error?'degraded':'online',liveFeed:liveData.error?'degraded':'online'},source:{name:'nflverse + ESPN',license:'nflverse CC BY 4.0',live:'ESPN public scoreboard',note:`Current nflverse roster${statsSource.season?` · ${statsSource.season} performance baseline`:' · role-based performance fallback'}${liveData.error?' · live scoreboard degraded':''}`,fallback:sourceFallback,liveError:liveData.error,statsError:statsSource.error||''},players:unique.slice(0,650)};
   cache.set(scoring,{payload,expires:Date.now()+5*60*1000});return payload;
 }
 module.exports=async function handler(req,res){try{const raw=String(req.query?.scoring||'ppr').toLowerCase(),scoring=raw==='standard'?'standard':raw==='half'?'half':'ppr',data=await buildPayload(scoring);res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','s-maxage=60, stale-while-revalidate=120');res.status(200).json(data)}catch(error){console.error('nfl-data fatal',error);res.setHeader('Cache-Control','no-store');res.status(503).json({error:'Football data engine unavailable.',detail:String(error?.message||error),version:VERSION})}}
