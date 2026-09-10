@@ -26,6 +26,11 @@
     return Number.isInteger(n) && n > 0 ? n : fallback;
   }
 
+  function nonNegativeNumber(value, fallback = null) {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  }
+
   function canonicalTeam(value) {
     const team = text(value).toUpperCase();
     return team === 'WAS' ? 'WSH' : team;
@@ -258,6 +263,7 @@
       const leagueId = text(raw?.league_id);
       const draftId = text(raw?.draft_id);
       const draft = draftId ? await draftObject(draftId) : null;
+      const waiverBudgetTotal = nonNegativeNumber(raw?.settings?.waiver_budget, null);
       const league = {
         leagueId,
         platform: 'sleeper',
@@ -265,7 +271,9 @@
         scoring: raw?.scoring_settings && typeof raw.scoring_settings === 'object' ? clone(raw.scoring_settings) : {},
         teams: positiveInt(raw?.total_rosters, positiveInt(draft?.settings?.teams, 0)),
         draftType: mapDraftType(draft?.type),
-        rosterSlots: normalizeRosterPositions(raw?.roster_positions)
+        rosterSlots: normalizeRosterPositions(raw?.roster_positions),
+        waiverBudgetTotal,
+        waiverType: waiverBudgetTotal === null ? 'unknown' : 'faab'
       };
       const validation = contracts?.validateLeagueSettings?.(league);
       if (validation && !validation.ok) throw new Error(`invalid Sleeper league: ${validation.errors.join('; ')}`);
@@ -374,7 +382,9 @@
             ownerId: text(rawRoster?.owner_id) || null,
             playerIds: resolveList(rawRoster?.players),
             starterPlayerIds: resolveList(matchup?.starters || rawRoster?.starters),
-            reservePlayerIds: resolveList(rawRoster?.reserve)
+            reservePlayerIds: resolveList(rawRoster?.reserve),
+            waiverBudgetUsed: nonNegativeNumber(rawRoster?.settings?.waiver_budget_used, 0),
+            waiverPosition: positiveInt(rawRoster?.settings?.waiver_position, 0) || null
           };
         });
 
