@@ -25,8 +25,18 @@
     return Number.isFinite(n) && n >= 0 ? n : fallback;
   }
 
+  function finiteNumber(value, fallback = null) {
+    if (value === null || value === undefined || value === '') return fallback;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   function uniqueIds(values) {
     return [...new Set((Array.isArray(values) ? values : []).map(text).filter(Boolean))];
+  }
+
+  function uniquePositiveInts(values) {
+    return [...new Set((Array.isArray(values) ? values : []).map(value => positiveInt(value, 0)).filter(Boolean))].sort((a, b) => a - b);
   }
 
   function deepFreeze(value) {
@@ -34,6 +44,21 @@
     Object.freeze(value);
     Object.values(value).forEach(deepFreeze);
     return value;
+  }
+
+  function normalizeRecord(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const wins = nonNegativeNumber(raw.wins, null);
+    const losses = nonNegativeNumber(raw.losses, null);
+    const ties = nonNegativeNumber(raw.ties, null);
+    if (wins === null || losses === null || ties === null) return null;
+    return {
+      wins: Math.floor(wins),
+      losses: Math.floor(losses),
+      ties: Math.floor(ties),
+      pointsFor: finiteNumber(raw.pointsFor, null),
+      pointsAgainst: finiteNumber(raw.pointsAgainst, null)
+    };
   }
 
   function normalizeRoster(raw, waiverBudgetTotal = null) {
@@ -51,8 +76,40 @@
       reservePlayerIds: reservePlayerIds.filter(id => playerSet.has(id)),
       waiverBudgetUsed,
       waiverBudgetRemaining: total === null ? null : Math.max(0, total - waiverBudgetUsed),
-      waiverPosition: positiveInt(raw?.waiverPosition, 0) || null
+      waiverPosition: positiveInt(raw?.waiverPosition, 0) || null,
+      record: normalizeRecord(raw?.record)
     };
+  }
+
+  function normalizeRemainingSchedule(rawSchedule, rosterIds) {
+    const rows = [];
+    const seen = new Set();
+    for (const raw of Array.isArray(rawSchedule) ? rawSchedule : []) {
+      const week = positiveInt(raw?.week, 0);
+      const rosterId = text(raw?.rosterId);
+      const opponentRosterId = text(raw?.opponentRosterId);
+      if (!week || !rosterIds.has(rosterId) || !rosterIds.has(opponentRosterId) || rosterId === opponentRosterId) continue;
+      const key = `${week}|${rosterId}|${opponentRosterId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({
+        week,
+        rosterId,
+        opponentRosterId,
+        matchupId: text(raw?.matchupId) || null
+      });
+    }
+    return rows.sort((a, b) => a.week - b.week || a.rosterId.localeCompare(b.rosterId) || a.opponentRosterId.localeCompare(b.opponentRosterId));
+  }
+
+  function normalizeScheduleCoverage(raw) {
+    const input = raw && typeof raw === 'object' ? raw : {};
+    const expectedWeeks = uniquePositiveInts(input.expectedWeeks);
+    const loadedWeeks = uniquePositiveInts(input.loadedWeeks).filter(week => !expectedWeeks.length || expectedWeeks.includes(week));
+    const complete = expectedWeeks.length
+      ? expectedWeeks.length === loadedWeeks.length && expectedWeeks.every(week => loadedWeeks.includes(week))
+      : Boolean(input.complete);
+    return { expectedWeeks, loadedWeeks, complete };
   }
 
   function normalizeLeagueSnapshot(input = {}) {
@@ -62,6 +119,8 @@
     const waiverBudgetTotal = nonNegativeNumber(league.waiverBudgetTotal, null);
     league.waiverBudgetTotal = waiverBudgetTotal;
     league.waiverType = text(league.waiverType).toLowerCase() || (waiverBudgetTotal === null ? 'unknown' : 'faab');
+    league.playoffWeekStart = positiveInt(league.playoffWeekStart, 0) || null;
+    league.playoffTeams = positiveInt(league.playoffTeams, 0) || null;
 
     const rosters = (Array.isArray(input.rosters) ? input.rosters : []).map(roster => normalizeRoster(roster, waiverBudgetTotal));
     const rosterIds = new Set();
@@ -97,6 +156,8 @@
       ownedPlayerIds,
       freeAgentPlayerIds,
       playerStatuses,
+      remainingSchedule: normalizeRemainingSchedule(input.remainingSchedule, rosterIds),
+      scheduleCoverage: normalizeScheduleCoverage(input.scheduleCoverage),
       freshness: {
         status: freshnessStatus,
         asOf: text(freshnessInput.asOf) || null,
