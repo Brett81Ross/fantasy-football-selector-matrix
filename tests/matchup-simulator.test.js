@@ -78,10 +78,12 @@ test('an underdog can receive a legal high-upside bench swap when it improves wi
  underdogValues.R3.projection=20; underdogValues.R4.projection=18;
  underdogValues.W5.projection=19; underdogValues.W6.projection=18; underdogValues.W7.projection=16;
  underdogValues.T2.projection=14;
+ // Keep the upside option just below the starter on median projection, while giving it a much wider winning tail.
+ underdogValues.W4.projection=13.5;
  const result=simulateMatchup(snapshot(),'1',underdogValues,{seed:'upside-swap',iterations:4000,minSwapDelta:0.2});
  const swap=result.recommendedSwaps.find(item=>item.outPlayerId==='W3'&&item.inPlayerId==='W4');
  assert.ok(result.winProbability<50,result.winProbability);
- assert.ok(swap,JSON.stringify({winProbability:result.winProbability,averageMargin:result.averageMargin,myStarters:result.myLineup.starters.map(x=>x.playerId),bench:result.myLineup.bench.map(x=>x.playerId),recommendedSwaps:result.recommendedSwaps},null,2));
+ assert.ok(swap,JSON.stringify({winProbability:result.winProbability,averageMargin:result.averageMargin,recommendedSwaps:result.recommendedSwaps},null,2));
  assert.ok(swap.winProbabilityDelta>0);
  assert.equal(swap.legal,true);
  assert.ok(swap.reason.length>20);
