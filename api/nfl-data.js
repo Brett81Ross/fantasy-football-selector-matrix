@@ -34,7 +34,7 @@ async function live(){try{const board=await fetchJson('https://site.api.espn.com
 async function buildPayload(scoring){
   const hit=cache.get(scoring);if(hit&&hit.expires>Date.now())return hit.payload;
   const [rosterSource,statsSource,liveData]=await Promise.all([loadRoster(),loadStats().catch(e=>({season:null,text:'',error:String(e?.message||e)})),live()]);
-  const rosterRows=csvRows(rosterSource.text,['team','position','status','full_name','gsis_id','years_exp','headshot_url']);
+  const rosterRows=csvRows(rosterSource.text,['team','position','status','full_name','gsis_id','sleeper_id','years_exp','headshot_url']);
   const statRowsRaw=statsSource.text?csvRows(statsSource.text,['player_id','position','season','week','season_type','attempts','passing_yards','passing_tds','interceptions','carries','rushing_yards','rushing_tds','targets','receptions','receiving_yards','receiving_tds','receiving_2pt_conversions','rushing_2pt_conversions','passing_2pt_conversions','fumbles_lost']):[];
   if(!rosterRows.length)throw new Error('nflverse roster returned no rows');
 
@@ -49,7 +49,7 @@ async function buildPayload(scoring){
   const players=[];
   for(const [id,r] of active){
     const weeks=(weeksById.get(id)||[]).sort((a,b)=>a.week-b.week),pointWeeks=weeks.map(w=>w.points).filter(Number.isFinite),oppWeeks=weeks.map(w=>w.opportunity),last4=weeks.slice(-4),avgPoints=mean(pointWeeks),avgOpportunity=mean(oppWeeks),recentPoints=mean(last4.map(w=>w.points)),cv=avgPoints>0?stdev(pointWeeks)/avgPoints:1.25,yearsExp=num(r.years_exp),rookie=yearsExp===0;
-    players.push({id,name:r.full_name||'Unknown Player',position:r.position,team:r.team,status:r.status||'ACT',yearsExp,rookie,games:pointWeeks.length,avgPoints:Math.round(avgPoints*10)/10,floor:Math.round(quantile(pointWeeks,.25)*10)/10,ceiling:Math.round(quantile(pointWeeks,.9)*10)/10,headshot:r.headshot_url||'',_avgOpportunity:avgOpportunity,_recentPoints:recentPoints,_trendRatio:avgPoints>0?recentPoints/avgPoints:1,_cv:cv,_highValuePerGame:mean(weeks.map(w=>w.highValue)),metrics:null})
+    players.push({id,sleeperId:r.sleeper_id||'',name:r.full_name||'Unknown Player',position:r.position,team:r.team,status:r.status||'ACT',yearsExp,rookie,games:pointWeeks.length,avgPoints:Math.round(avgPoints*10)/10,floor:Math.round(quantile(pointWeeks,.25)*10)/10,ceiling:Math.round(quantile(pointWeeks,.9)*10)/10,headshot:r.headshot_url||'',_avgOpportunity:avgOpportunity,_recentPoints:recentPoints,_trendRatio:avgPoints>0?recentPoints/avgPoints:1,_cv:cv,_highValuePerGame:mean(weeks.map(w=>w.highValue)),metrics:null})
   }
 
   const byPos={};for(const pos of ['QB','RB','WR','TE'])byPos[pos]=players.filter(p=>p.position===pos&&p.games>=3);
@@ -59,7 +59,7 @@ async function buildPayload(scoring){
     delete p._avgOpportunity;delete p._recentPoints;delete p._trendRatio;delete p._cv;delete p._highValuePerGame;
   }
 
-  players.push(...TEAM_IDS.map(team=>({id:`DST-${team}`,name:`${team} Defense / Special Teams`,position:'DST',team,status:'Active',yearsExp:0,rookie:false,games:0,avgPoints:0,floor:0,ceiling:0,headshot:`https://a.espncdn.com/i/teamlogos/nfl/500/${team.toLowerCase()}.png`,metrics:dstMetrics()})));
+  players.push(...TEAM_IDS.map(team=>({id:`DST-${team}`,sleeperId:team,name:`${team} Defense / Special Teams`,position:'DST',team,status:'Active',yearsExp:0,rookie:false,games:0,avgPoints:0,floor:0,ceiling:0,headshot:`https://a.espncdn.com/i/teamlogos/nfl/500/${team.toLowerCase()}.png`,metrics:dstMetrics()})));
   const unique=[...new Map(players.filter(p=>p.name!=='Unknown Player').map(p=>[`${p.position}:${p.id}`,p])).values()];
   const score=p=>p.metrics.production*.34+p.metrics.opportunity*.26+p.metrics.ceiling*.16+p.metrics.consistency*.10+p.metrics.availability*.08+p.metrics.trend*.06;
   unique.sort((a,b)=>score(b)-score(a));
