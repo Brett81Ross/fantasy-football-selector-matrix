@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION='1.5.5';
+  const VERSION='1.6.0';
   function apply(){
     document.title='Fantasy Football Matrix™';
     document.querySelectorAll('.brand small,.brand-version').forEach(el=>{el.textContent=el.textContent.replace(/v\d+\.\d+\.\d+/,`v${VERSION}`)});
