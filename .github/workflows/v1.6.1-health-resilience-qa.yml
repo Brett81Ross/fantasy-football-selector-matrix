@@ -1,0 +1,27 @@
+name: Fantasy v1.6.1 Health Resilience QA
+on:
+  push:
+    branches:
+      - hotfix-v1.6.1-health-resilience
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax checks
+        run: |
+          node --check api/app.js
+          node --check api/health.js
+          node --check api/nfl-data.js
+          node --check api/nfl-source-policy.js
+      - name: Release guardrails
+        run: |
+          grep -q '"deploymentEnabled":false' vercel.json
+          ! grep -R "serviceWorker.register" --include='*.js' --exclude-dir=.git --exclude-dir=.github --exclude-dir=tests .
+      - name: Full test suite
+        run: node --test tests/*.test.js
+      # Temporary branch-only workflow; remove after verification.
