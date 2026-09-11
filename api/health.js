@@ -1,7 +1,7 @@
-const VERSION='1.5.5';
+const VERSION=require('../version');
 const {buildNflSourcePolicy}=require('./nfl-source-policy');
-const SOURCE_POLICY=buildNflSourcePolicy(new Date(),VERSION);
-const lastSuccess={roster:null,performance:null,scoreboard:null};
+const SOURCE_POLICY=buildNflSourcePolicy(new Date());
+const lastSuccess={roster:null,performance:null,schedule:null,scoreboard:null};
 
 async function probeCsv(candidate,timeoutMs=7000){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs),started=Date.now();
@@ -45,6 +45,7 @@ function compactSourceResult(result,key,now,{source,currentSeason,preferredStats
   const fallback=Boolean(active)&&result.attempts.length>1;
   return{
     source,
+    required:true,
     ok:Boolean(active),
     fallback,
     activeSeason:active?.season??null,
@@ -58,17 +59,33 @@ function compactSourceResult(result,key,now,{source,currentSeason,preferredStats
 
 module.exports=async function handler(req,res){
   const checkedAt=new Date().toISOString();
-  const [rosterResult,performanceResult,scoreboard]=await Promise.all([
+  const scheduleCandidate={season:SOURCE_POLICY.currentSeason,kind:'schedule',url:SOURCE_POLICY.scheduleUrl};
+  const [rosterResult,performanceResult,scheduleProbe,scoreboard]=await Promise.all([
     firstHealthy(SOURCE_POLICY.rosterCandidates),
     firstHealthy(SOURCE_POLICY.statsCandidates),
+    probeCsv(scheduleCandidate),
     probeScoreboard()
   ]);
 
   const roster=compactSourceResult(rosterResult,'roster',checkedAt,{source:'nflverse',currentSeason:SOURCE_POLICY.currentSeason,preferredStatsSeason:SOURCE_POLICY.preferredStatsSeason});
   const performance=compactSourceResult(performanceResult,'performance',checkedAt,{source:'nflverse',currentSeason:SOURCE_POLICY.currentSeason,preferredStatsSeason:SOURCE_POLICY.preferredStatsSeason});
+  const schedule={
+    source:'nflverse',
+    required:true,
+    ok:scheduleProbe.ok,
+    fallback:false,
+    activeSeason:SOURCE_POLICY.currentSeason,
+    activeKind:'schedule',
+    http:scheduleProbe.http,
+    ms:scheduleProbe.ms,
+    error:scheduleProbe.error||null,
+    lastSuccessfulAt:markSuccess('schedule',scheduleProbe.ok,checkedAt),
+    attempts:[{season:SOURCE_POLICY.currentSeason,kind:'schedule',ok:scheduleProbe.ok,http:scheduleProbe.http,ms:scheduleProbe.ms,error:scheduleProbe.error}]
+  };
   const games=Array.isArray(scoreboard.data?.events)?scoreboard.data.events.length:null;
   const liveScoreboard={
     source:'ESPN',
+    required:false,
     ok:scoreboard.ok,
     fallback:false,
     http:scoreboard.http,
@@ -81,7 +98,7 @@ module.exports=async function handler(req,res){
   let status;
   if(!roster.ok)status='OFFLINE';
   else if(roster.activeSeason!==SOURCE_POLICY.currentSeason)status='STALE';
-  else if(!performance.ok||!liveScoreboard.ok||performance.activeKind==='legacy')status='DEGRADED';
+  else if(!performance.ok||performance.activeKind==='legacy'||!schedule.ok)status='DEGRADED';
   else status='LIVE';
 
   const httpStatus=status==='OFFLINE'?503:status==='LIVE'?200:206;
@@ -97,7 +114,7 @@ module.exports=async function handler(req,res){
       roster:roster.activeSeason,
       stats:performance.activeSeason
     },
-    data:{roster,performance,liveScoreboard}
+    data:{roster,performance,schedule,liveScoreboard}
   });
 };
 
