@@ -1,4 +1,4 @@
-const VERSION='1.6.0';
+const VERSION=require('../version');
 
 module.exports=async function handler(req,res){
   try{
