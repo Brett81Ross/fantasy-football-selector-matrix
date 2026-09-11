@@ -1,4 +1,6 @@
-function buildNflSourcePolicy(now = new Date(), version = '1.5.5') {
+const VERSION=require('../version');
+
+function buildNflSourcePolicy(now = new Date()) {
   const currentSeason = now.getUTCMonth() >= 2 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
   const preseason = now.getUTCMonth() < 8;
   const preferredStatsSeason = preseason ? currentSeason - 1 : currentSeason;
@@ -23,14 +25,15 @@ function buildNflSourcePolicy(now = new Date(), version = '1.5.5') {
     preferredStatsSeason,
     rosterCandidates,
     statsCandidates,
+    scheduleUrl: 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv',
     scoreboardUrl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100',
     csvHeaders: {
-      'User-Agent': `Fantasy-Football-Matrix/${version}`,
+      'User-Agent': `Fantasy-Football-Matrix/${VERSION}`,
       Accept: 'text/csv,text/plain,*/*'
     },
     jsonHeaders: {
       Accept: 'application/json',
-      'User-Agent': `Fantasy-Football-Matrix/${version}`
+      'User-Agent': `Fantasy-Football-Matrix/${VERSION}`
     }
   };
 }
