@@ -4,6 +4,7 @@
   if(root)root.FFMUIPerformance=api;
   if(root&&root.document){
     api.installDraftScoreCache(root);
+    api.installRenderFastPath(root);
     root.__FFM_UI_PERF_READY__=api.installSeasonFastPath(root);
   }
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
@@ -87,6 +88,36 @@
     root.matrixScore=matrixScore;
     const installed={installed:true,stats,invalidate(){playersRef=null;current();}};
     root.__FFM_DRAFT_SCORE_CACHE__=installed;
+    return installed;
+  }
+
+  function installRenderFastPath(root){
+    if(!root)return{installed:false,stats:{partialRenders:0,staticRenders:0}};
+    if(root.__FFM_RENDER_FAST_PATH__)return root.__FFM_RENDER_FAST_PATH__;
+    if(typeof root.renderAll!=='function')return{installed:false,stats:{partialRenders:0,staticRenders:0}};
+
+    const stats={partialRenders:0,staticRenders:0};
+    const initial=appState(root);
+    let playersRef=Array.isArray(initial?.players)?initial.players:null;
+
+    function renderAll(){
+      const s=appState(root);
+      const datasetChanged=Array.isArray(s?.players)&&s.players!==playersRef;
+      if(typeof root.renderDraftPick==='function')root.renderDraftPick();
+      if(typeof root.renderDraftList==='function')root.renderDraftList();
+      if(typeof root.renderCompareTray==='function')root.renderCompareTray();
+      if(datasetChanged){
+        playersRef=s.players;
+        if(typeof root.renderWaivers==='function')root.renderWaivers();
+        if(typeof root.populateSelects==='function')root.populateSelects();
+        stats.staticRenders++;
+      }
+      stats.partialRenders++;
+    }
+
+    root.renderAll=renderAll;
+    const installed={installed:true,stats,invalidateStatic(){playersRef=null;}};
+    root.__FFM_RENDER_FAST_PATH__=installed;
     return installed;
   }
 
@@ -176,5 +207,5 @@
     return true;
   }
 
-  return{installDraftScoreCache,installSeasonFastPath};
+  return{installDraftScoreCache,installRenderFastPath,installSeasonFastPath};
 });
