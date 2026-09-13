@@ -5,6 +5,8 @@
   const LINEUP_KEY = 'ffm-roster-lineup';
   const BENCH_KEY = 'ffm-fast-bench';
   const recentManual = [];
+  let currentRecommendation = null;
+  let renderScheduled = false;
 
   function safeJson(key, fallback) {
     try {
@@ -143,6 +145,12 @@
     if (tab) tab.click();
   }
 
+  function scheduleRender() {
+    if (renderScheduled) return;
+    renderScheduled = true;
+    requestAnimationFrame(() => setTimeout(() => { renderScheduled = false; render(); }, 0));
+  }
+
   function mount() {
     if (document.getElementById('liveDraftMode')) return;
     const draft = document.getElementById('draft');
@@ -171,7 +179,7 @@
       <div class="live-reason" id="liveReason">Building your next recommendation.</div>
       <div class="live-roster" id="liveRoster"></div>
       <div class="live-actions"><button class="live-action" id="liveThey">THEY TOOK HIM</button><button class="live-action mine" id="liveMine">I TOOK HIM</button></div>
-      <div class="live-recent"><span class="live-recent-label">Recent Picks</span><span id="liveRecent"></span><button class="live-undo" id="liveUndo">UNDO</button></div>`;
+      <div class="live-recent"><span class="live-draft-label">Recent Picks</span><span id="liveRecent"></span><button class="live-undo" id="liveUndo">UNDO</button></div>`;
 
     const filters = draft.querySelector('.filters');
     if (filters) filters.insertAdjacentElement('beforebegin', panel);
@@ -180,28 +188,31 @@
 
     document.getElementById('liveThey').addEventListener('click', () => {
       if (canonicalState()?.status === 'completed') { activateTab('waiver'); return; }
-      const pick = recommendation(assignmentState());
-      if (!pick) return;
+      const pick = currentRecommendation;
+      if (!pick) { scheduleRender(); return; }
+      currentRecommendation = null;
       recentManual.push({ overall:recentManual.length + 1, playerId:pick.playerId, teamId:'OTHER' });
       const fast = document.getElementById('fastDrafted');
       if (fast) { fast.dataset.id = pick.playerId; fast.click(); }
-      setTimeout(render, 0);
+      scheduleRender();
     });
     document.getElementById('liveMine').addEventListener('click', () => {
       if (canonicalState()?.status === 'completed') { activateTab('trade'); return; }
-      const pick = recommendation(assignmentState());
-      if (!pick) return;
+      const pick = currentRecommendation;
+      if (!pick) { scheduleRender(); return; }
+      currentRecommendation = null;
       recentManual.push({ overall:recentManual.length + 1, playerId:pick.playerId, teamId:'ME' });
       const fast = document.getElementById('fastMine');
       if (fast) { fast.dataset.id = pick.playerId; fast.click(); }
-      setTimeout(render, 0);
+      scheduleRender();
     });
     document.getElementById('liveUndo').addEventListener('click', () => {
       if (canonicalState()?.status === 'completed') return;
+      currentRecommendation = null;
       recentManual.pop();
       const fast = document.getElementById('fastUndo');
       if (fast) fast.click();
-      setTimeout(render, 0);
+      scheduleRender();
     });
   }
 
@@ -211,7 +222,8 @@
     const panel = document.getElementById('liveDraftMode');
     if (!panel) return;
     const assignments = assignmentState();
-    const rec = recommendation(assignments);
+    currentRecommendation = recommendation(assignments);
+    const rec = currentRecommendation;
     const canonical = canonicalState();
     const view = window.FFMLiveDraftView.buildLiveDraftView({
       draftStatus: canonical?.status,
@@ -258,16 +270,17 @@
     if (typeof previousRenderAll === 'function' && !previousRenderAll.__liveDraftWrapped) {
       const wrapped = function liveDraftRenderAll() {
         const result = previousRenderAll.apply(this, arguments);
-        requestAnimationFrame(render);
+        currentRecommendation = null;
+        scheduleRender();
         return result;
       };
       wrapped.__liveDraftWrapped = true;
       window.renderAll = wrapped;
     }
-    window.addEventListener('ffm:draft-state', render);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
-    window.addEventListener('focus', render);
-    render();
+    window.addEventListener('ffm:draft-state', scheduleRender);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleRender(); });
+    window.addEventListener('focus', scheduleRender);
+    scheduleRender();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });
