@@ -24,12 +24,14 @@ test('Season Intelligence exposes an in-app Command Center and passes kickoff co
  assert.doesNotMatch(ui,/Notification\.requestPermission|serviceWorker\.register/);
 });
 
-test('NFL data payload preserves scheduled game kickoff and team abbreviations',()=>{
+test('NFL data payload preserves nflverse scheduled game kickoff and team abbreviations',()=>{
  const api=read('api/nfl-data.js');
+ const schedule=read('api/nfl-schedule.js');
+ assert.match(api,/parseNflverseSchedule/);
  assert.match(api,/gameSchedule/);
- assert.match(api,/kickoffAt/);
- assert.match(api,/competitors/);
- assert.match(api,/abbreviation/);
+ assert.match(schedule,/kickoffAt/);
+ assert.match(schedule,/away_team/);
+ assert.match(schedule,/home_team/);
 });
 
 test('live refresh publishes team kickoff context for the Command Center',()=>{
@@ -37,9 +39,12 @@ test('live refresh publishes team kickoff context for the Command Center',()=>{
  assert.match(live,/__FFM_KICKOFF_CONTEXT__/);
  assert.match(live,/kickoffsByTeam/);
  assert.match(live,/gameSchedule/);
+ assert.match(live,/scheduleFeed/);
 });
 
-test('ABL-30 wiring leaves version authority and deployment lock unchanged',()=>{
- assert.match(read('api/app.js'),/const VERSION='1\.6\.0'/);
+test('ABL-30 wiring leaves shared version authority and deployment lock intact',()=>{
+ const app=read('api/app.js');
+ assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
+ assert.equal(read('VERSION').trim(),'1.6.1');
  assert.match(read('vercel.json'),/"deploymentEnabled"\s*:\s*false/);
 });

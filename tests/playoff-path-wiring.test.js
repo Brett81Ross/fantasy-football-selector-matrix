@@ -37,7 +37,8 @@ test('ABL-34 wiring preserves release guardrails and recommendation-only behavio
   const app=read('api/app.js');
   const vercel=read('vercel.json');
   const ui=read('season-intelligence.js');
-  assert.match(app,/const VERSION='1\.6\.0'/);
+  assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
+  assert.equal(read('VERSION').trim(),'1.6.1');
   assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
   assert.doesNotMatch(ui,/navigator\.serviceWorker\.register/);
   assert.doesNotMatch(ui,/api\.sleeper\.app.*(?:POST|PUT|DELETE)/i);

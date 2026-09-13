@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION='1.5.5';
+  const VERSION=String(window.__FFM_VERSION__||document.documentElement.dataset.ffmVersion||'runtime');
   const POLL_MS=20000;
   const VERSION_KEY='ffm-app-version';
   const LAST_GOOD_PREFIX='ffm-last-good:';
@@ -34,12 +34,13 @@
     window.__FFM_KICKOFF_CONTEXT__={kickoffsByTeam,gameSchedule,sourceHealth,generatedAt:data?.generatedAt||null};
     window.dispatchEvent(new CustomEvent('ffm:kickoff-context',{detail:window.__FFM_KICKOFF_CONTEXT__}));
   }
+  function requiredSourceHealth(data){return (data?.health?.scheduleFeed==='degraded'||data?.source?.scheduleError)?'DEGRADED':'LIVE'}
   function applyPayload(data,sourceHealth){
     if(!appReady()||!payloadUsable(data))return false;
     const drafted=state.drafted,compare=state.compare;
     state.players=data.players;state.dataMeta=data;
     if(drafted)state.drafted=drafted;if(compare)state.compare=compare;
-    const health=sourceHealth||((data?.health?.liveFeed==='degraded'||data?.source?.liveError)?'DEGRADED':'LIVE');
+    const health=sourceHealth||requiredSourceHealth(data);
     publishKickoffContext(data,health);
     renderAll();
     return true;
@@ -78,17 +79,23 @@
       const data=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(data.detail||`HTTP ${r.status}`);
       if(!payloadUsable(data))throw new Error('Player payload incomplete');
-      const sourceHealth=(data?.health?.liveFeed==='degraded'||data?.source?.liveError)?'DEGRADED':'LIVE';
+      const sourceHealth=requiredSourceHealth(data);
       if(!applyPayload(data,sourceHealth))throw new Error('App not ready to apply player payload');
       saveLastGood(data);
       const live=Number(data.liveGames||0),teams=Number(data.health?.teamsLoaded||0),partial=teams<32;
       const draftDegraded=data.health?.performanceFeed==='degraded'||Boolean(data.source?.fallback)||partial;
-      const scoreboardDegraded=data.health?.liveFeed==='degraded';
+      const timingDegraded=data.health?.scheduleFeed==='degraded'||Boolean(data.source?.scheduleError);
+      const scoreboardDegraded=data.health?.liveFeed==='degraded'||Boolean(data.source?.liveError);
       const baseline=data.statsSeason?`${data.statsSeason} performance baseline`:'role-based baseline';
-      status(draftDegraded?'NFL DRAFT DATA DEGRADED · validated fallback active':`NFL DRAFT DATA LIVE · ${baseline}`,false,`${data.currentSeason} roster · ${teams}/32 teams`);
+      const headline=draftDegraded?'NFL DRAFT DATA DEGRADED · validated fallback active':timingDegraded?'NFL TIMING DATA DEGRADED · kickoff schedule unavailable':`NFL DRAFT DATA LIVE · ${baseline}`;
+      status(headline,false,`${data.currentSeason} roster · ${teams}/32 teams`);
       const note=document.getElementById('draftSourceNote');
-      if(note)note.textContent=draftDegraded?(data.source?.note||'Validated fallback player data active.'):`Current ${data.rosterSeason||data.currentSeason} NFL roster with ${baseline}.${scoreboardDegraded?' Live scoreboard is temporarily unavailable; draft rankings are unaffected.':live?` ${live} live game${live===1?'':'s'} active.`:''}`;
-      window.__FFM_LAST_LIVE_UPDATE__=data.generatedAt;window.__FFM_DATA_HEALTH__={...(data.health||{}),draftData: draftDegraded?'degraded':'live',scoreboard:scoreboardDegraded?'degraded':'live',stale:false};window.__FFM_DATA_ERROR__='';
+      if(note){
+        if(draftDegraded)note.textContent=data.source?.note||'Validated fallback player data active.';
+        else if(timingDegraded)note.textContent='Player data is current, but nflverse kickoff timing is temporarily unavailable. Lock-time recommendations are degraded rather than guessed.';
+        else note.textContent=`Current ${data.rosterSeason||data.currentSeason} NFL roster with ${baseline}. nflverse kickoff timing is active.${scoreboardDegraded?' Optional ESPN live-score enrichment is unavailable; rankings and kickoff timing are unaffected.':live?` ${live} live game${live===1?'':'s'} active.`:''}`;
+      }
+      window.__FFM_LAST_LIVE_UPDATE__=data.generatedAt;window.__FFM_DATA_HEALTH__={...(data.health||{}),draftData:draftDegraded?'degraded':'live',timing:timingDegraded?'degraded':'live',scoreboard:scoreboardDegraded?'optional-unavailable':'live',stale:false};window.__FFM_DATA_ERROR__='';
       return true;
     }catch(e){
       const hasPlayers=appReady()&&state.players.length>0;
