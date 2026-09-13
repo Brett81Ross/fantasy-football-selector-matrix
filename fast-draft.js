@@ -64,7 +64,6 @@
     `;
     document.head.appendChild(style);
 
-    // Visible version bump without disturbing the existing layout.
     document.querySelectorAll('.brand small').forEach(el => {
       el.textContent = el.textContent.replace(/v\d+\.\d+\.\d+/, `v${FAST_VERSION}`);
     });
@@ -99,6 +98,7 @@
     let scoreCache = new Map();
     let scarcityCache = new Map();
     let cacheSignature = '';
+    let fastUiScheduled = false;
 
     function draftedSignature() {
       return [...state.drafted].sort().join(',');
@@ -108,6 +108,12 @@
       scoreCache.clear();
       scarcityCache.clear();
       cacheSignature = '';
+    }
+
+    function scheduleFastUI() {
+      if (fastUiScheduled) return;
+      fastUiScheduled = true;
+      requestAnimationFrame(() => setTimeout(() => { fastUiScheduled = false; syncFastUI(); }, 0));
     }
 
     const baseScarcityScore = scarcityScore;
@@ -151,7 +157,7 @@
     renderAll = function fastRenderAll() {
       invalidateScores();
       baseRenderAll();
-      requestAnimationFrame(syncFastUI);
+      scheduleFastUI();
     };
 
     const baseRenderDraftList = renderDraftList;
@@ -163,9 +169,7 @@
       const scored = pool.map(p => ({p, score: matrixScore(p)})).sort((a,b) => b.score - a.score).slice(0,60);
       document.getElementById('availableCount').textContent = `${getBoardPlayers('ALL','').length} LEFT`;
       document.getElementById('draftList').innerHTML = scored.length ? scored.map((x,i) => playerRow(x.p,i+1)).join('') : '<div class="empty">No players match.</div>';
-      document.querySelectorAll('.compare-btn').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); toggleCompare(btn.dataset.id); }));
-      document.querySelectorAll('.drafted-btn').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); fastMarkDrafted(btn.dataset.id, false); }));
-      syncFastUI();
+      scheduleFastUI();
     };
 
     function saveDraftState() {
@@ -241,7 +245,6 @@
       document.querySelectorAll('[data-fast-pos]').forEach(btn => btn.classList.toggle('active', btn.dataset.fastPos === document.getElementById('position').value));
     }
 
-    // Restore an in-progress draft after reload. Wait for the live/cached player payload first.
     const restoreSaved = () => {
       if (!state.players.length) return false;
       const valid = new Set(state.players.map(p => p.id));
@@ -261,21 +264,22 @@
       const select = document.getElementById('position');
       select.value = btn.dataset.fastPos;
       select.dispatchEvent(new Event('change', { bubbles: true }));
-      syncFastUI();
+      scheduleFastUI();
     });
 
     document.getElementById('fastDrafted').addEventListener('click', () => fastMarkDrafted(document.getElementById('fastDrafted').dataset.id, false));
     document.getElementById('fastMine').addEventListener('click', () => fastMarkDrafted(document.getElementById('fastMine').dataset.id, true));
     document.getElementById('fastUndo').addEventListener('click', undoLast);
 
-    // Tap anywhere on a player row to remove him from the board. Buttons still do their normal jobs.
     document.getElementById('draftList')?.addEventListener('click', e => {
-      if (e.target.closest('button')) return;
+      const compare = e.target.closest('.compare-btn');
+      if (compare) { e.stopPropagation(); toggleCompare(compare.dataset.id); return; }
+      const drafted = e.target.closest('.drafted-btn');
+      if (drafted) { e.stopPropagation(); fastMarkDrafted(drafted.dataset.id, false); return; }
       const row = e.target.closest('[data-player]');
       if (row?.dataset.player) fastMarkDrafted(row.dataset.player, false);
     });
 
-    // Type a name + Enter = mark the first result drafted. Search clears instantly afterward.
     document.getElementById('draftSearch')?.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
       const q = e.currentTarget.value.trim();
@@ -289,24 +293,22 @@
       }
     });
 
-    // Existing control changes update the fixed recommendation immediately.
-    ['position','round','draftSearch'].forEach(id => document.getElementById(id)?.addEventListener(id === 'draftSearch' ? 'input' : 'change', () => requestAnimationFrame(syncFastUI)));
-    document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => requestAnimationFrame(syncFastUI)));
+    ['position','round','draftSearch'].forEach(id => document.getElementById(id)?.addEventListener(id === 'draftSearch' ? 'input' : 'change', scheduleFastUI));
+    document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', scheduleFastUI));
     document.getElementById('resetDraft')?.addEventListener('click', () => {
       myRoster.clear();
       localStorage.removeItem(DRAFTED_KEY);
       localStorage.removeItem(ROSTER_KEY);
       invalidateScores();
-      requestAnimationFrame(syncFastUI);
+      scheduleFastUI();
     });
     document.getElementById('saveSettings')?.addEventListener('click', () => {
       defaultGap = Math.max(1, Number(document.getElementById('setNextPick')?.value || state.teams || 12));
       localStorage.setItem(GAP_KEY, String(defaultGap));
       invalidateScores();
-      setTimeout(syncFastUI, 0);
+      scheduleFastUI();
     });
 
-    // Stop 300ms-ish double-tap behavior on older mobile browsers and keep the search ready.
     document.getElementById('draftSearch')?.setAttribute('enterkeyhint', 'done');
     syncFastUI();
   }
