@@ -38,3 +38,11 @@ test('draft row buttons use one delegated listener instead of rebinding every re
   assert.match(source,/closest\('\.compare-btn'\)/,'delegated draft-list listener must handle compare buttons');
   assert.match(source,/closest\('\.drafted-btn'\)/,'delegated draft-list listener must handle drafted buttons');
 });
+
+test('fast draft recommendation sync is also deferred beyond the first paint',()=>{
+  const source=read('fast-draft.js');
+  assert.match(source,/function scheduleFastUI\(/,'fast draft must centralize deferred recommendation syncing');
+  assert.match(source,/requestAnimationFrame\([^\n]*setTimeout\(/,'fast draft sync must cross a paint boundary');
+  assert.doesNotMatch(source,/requestAnimationFrame\(syncFastUI\)/,'fast draft sync must not run directly in requestAnimationFrame');
+  assert.doesNotMatch(source,/\n\s*syncFastUI\(\);\n\s*};/,'renderDraftList must not run recommendation sync synchronously before paint');
+});
