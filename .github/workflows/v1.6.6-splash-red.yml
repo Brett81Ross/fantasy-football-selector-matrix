@@ -1,0 +1,14 @@
+name: Fantasy v1.6.6 Splash RED
+on:
+  push:
+    branches:
+      - hotfix-v1.6.6-splash-correction
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test tests/splash-handoff.test.js
