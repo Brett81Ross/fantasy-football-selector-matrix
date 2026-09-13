@@ -105,9 +105,14 @@ test('Season Intelligence fast path runs only the engine needed by the selected 
 });
 
 test('runtime loader includes the UI performance layer without enabling service workers or deployment',()=>{
+  const app=fs.readFileSync('api/app.js','utf8');
   const versionLock=fs.readFileSync('version-lock.js','utf8');
   const vercel=fs.readFileSync('vercel.json','utf8');
-  assert.match(versionLock,/ui-performance\.js/);
+  const weekly=app.indexOf('season-core/weekly-attack-plan.js');
+  const perf=app.indexOf('ui-performance.js');
+  const season=app.indexOf('season-intelligence.js');
+  assert.ok(weekly>=0&&perf>weekly&&season>perf,'performance layer must load after Weekly Attack Plan and before Season Intelligence');
+  assert.doesNotMatch(versionLock,/ui-performance\.js/,'version-lock must not dynamically inject the performance layer');
   assert.match(vercel,/"deploymentEnabled":false/);
-  assert.doesNotMatch(versionLock,/serviceWorker\.register/);
+  assert.doesNotMatch(app,/serviceWorker\.register/);
 });
