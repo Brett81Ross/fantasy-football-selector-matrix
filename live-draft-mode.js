@@ -179,7 +179,7 @@
       <div class="live-reason" id="liveReason">Building your next recommendation.</div>
       <div class="live-roster" id="liveRoster"></div>
       <div class="live-actions"><button class="live-action" id="liveThey">THEY TOOK HIM</button><button class="live-action mine" id="liveMine">I TOOK HIM</button></div>
-      <div class="live-recent"><span class="live-draft-label">Recent Picks</span><span id="liveRecent"></span><button class="live-undo" id="liveUndo">UNDO</button></div>`;
+      <div class="live-recent"><span class="live-recent-label">Recent Picks</span><span id="liveRecent"></span><button class="live-undo" id="liveUndo">UNDO</button></div>`;
 
     const filters = draft.querySelector('.filters');
     if (filters) filters.insertAdjacentElement('beforebegin', panel);
