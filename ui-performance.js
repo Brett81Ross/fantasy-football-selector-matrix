@@ -4,12 +4,7 @@
   if(root)root.FFMUIPerformance=api;
   if(root&&root.document){
     api.installDraftScoreCache(root);
-    let attempts=0;
-    const installSeason=()=>{
-      if(api.installSeasonFastPath(root))return;
-      if(attempts++<200)setTimeout(installSeason,10);
-    };
-    installSeason();
+    root.__FFM_UI_PERF_READY__=api.installSeasonFastPath(root);
   }
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
