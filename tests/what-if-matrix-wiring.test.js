@@ -43,12 +43,13 @@ test('What-If UI never replaces or persists the canonical league snapshot',()=>{
   assert.match(ui,/render\(window\.ffmLeagueSnapshot\s*,\s*['"]What-If Matrix['"]\)/,'reset must immediately render the canonical snapshot');
 });
 
-test('ABL-35 preserves deployment version service-worker and transaction guardrails',()=>{
+test('ABL-35 preserves deployment shared-version service-worker and transaction guardrails',()=>{
   const app=read('api/app.js');
   const vercel=read('vercel.json');
   const whatIf=read('season-core/what-if-matrix.js');
   const ui=read('season-intelligence.js');
-  assert.match(app,/const VERSION='1\.6\.0'/);
+  assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
+  assert.equal(read('VERSION').trim(),'1.6.1');
   assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
   assert.doesNotMatch(whatIf,/fetch\s*\(/);
   assert.doesNotMatch(ui,/navigator\.serviceWorker\.register/);
