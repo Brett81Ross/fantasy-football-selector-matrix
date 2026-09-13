@@ -1,6 +1,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const vm=require('node:vm');
 
 function makePlayers(count=240){
   const positions=['QB','RB','WR','TE'];
@@ -31,6 +32,23 @@ test('draft score cache builds positional scarcity once per unchanged board stat
   root.state.drafted.add(root.state.players[0].id);
   root.matrixScore(root.state.players[1],4,true);
   assert.equal(installed.stats.scarcityBuilds,2,'draft-state changes must invalidate cached scarcity safely');
+});
+
+test('browser classic-script globals use the optimized Matrix scorer even when state is a lexical const',()=>{
+  const context={console,setTimeout:()=>0};
+  context.document={getElementById:()=>({value:'4'}),querySelector:()=>null};
+  context.globalThis=context;
+  vm.createContext(context);
+  vm.runInContext(`
+    const state={players:${JSON.stringify(makePlayers(80))},drafted:new Set(),teams:12,risk:'balanced'};
+    function weightsFor(){return{production:.25,opportunity:.20,consistency:.12,ceiling:.17,trend:.10,scarcity:.10,availability:.06}}
+    function scarcityScore(){throw new Error('slow scorer should have been replaced')}
+    function matrixScore(){throw new Error('slow Matrix scorer should have been replaced')}
+  `,context);
+  vm.runInContext(fs.readFileSync('ui-performance.js','utf8'),context);
+  const value=vm.runInContext('matrixScore(state.players[0],4,true)',context);
+  assert.equal(typeof value,'number');
+  assert.equal(context.FFMUIPerformance.installDraftScoreCache(context).stats.scarcityBuilds,1);
 });
 
 function seasonRoot(){
