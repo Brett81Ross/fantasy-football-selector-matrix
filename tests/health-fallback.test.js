@@ -68,7 +68,7 @@ test('health uses the same ESPN headers and limit as the runtime data engine', a
       sawScoreboard = true;
       assert.match(url, /limit=100/);
       assert.equal(options.headers.Accept, 'application/json');
-      assert.equal(options.headers['User-Agent'], 'Fantasy-Football-Matrix/1.6.4');
+      assert.equal(options.headers['User-Agent'], 'Fantasy-Football-Matrix/1.6.5');
       return response(200, { events: [] });
     }
     return normalRoute(url, options);

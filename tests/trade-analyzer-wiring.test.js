@@ -68,7 +68,7 @@ test('Trade Hunter source depends on the pure Trade Analyzer rather than duplica
 });
 
 test('browser loads Trade Analyzer after its dependencies and before Trade Hunter',()=>{
-  const app=fs.readFileSync(path.join(root,'api/app.js'),'utf8');
+  const app=fs.readFileSync(path.join(root,'api','app.js'),'utf8');
   const ros=app.indexOf('season-core/rest-of-season-value.js');
   const lineup=app.indexOf('season-core/lineup-optimizer.js');
   const analyzer=app.indexOf('season-core/trade-analyzer.js');
@@ -91,13 +91,13 @@ test('Season Intelligence visibly separates fairness from roster benefit and sho
 
 test('ABL-33 keeps release guardrails and recommendation-only trade behavior intact',()=>{
   const vercel=fs.readFileSync(path.join(root,'vercel.json'),'utf8');
-  const app=fs.readFileSync(path.join(root,'api/app.js'),'utf8');
+  const app=fs.readFileSync(path.join(root,'api','app.js'),'utf8');
   const analyzer=fs.readFileSync(path.join(root,'season-core/trade-analyzer.js'),'utf8');
   const hunter=fs.readFileSync(path.join(root,'season-core/trade-hunter.js'),'utf8');
   const ui=fs.readFileSync(path.join(root,'season-intelligence.js'),'utf8');
   assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
   assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
-  assert.equal(fs.readFileSync(path.join(root,'VERSION'),'utf8').trim(),'1.6.4');
+  assert.equal(fs.readFileSync(path.join(root,'VERSION'),'utf8').trim(),'1.6.5');
   assert.doesNotMatch(analyzer,/serviceWorker\.register/);
   assert.doesNotMatch(hunter,/serviceWorker\.register/);
   assert.doesNotMatch(ui,/serviceWorker\.register/);
