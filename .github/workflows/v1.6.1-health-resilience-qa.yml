@@ -14,14 +14,50 @@ jobs:
           node-version: '20'
       - name: Syntax checks
         run: |
+          node --check version.js
           node --check api/app.js
           node --check api/health.js
           node --check api/nfl-data.js
           node --check api/nfl-source-policy.js
+          node --check api/nfl-schedule.js
+          node --check live-refresh.js
+          node --check version-lock.js
       - name: Release guardrails
         run: |
           grep -q '"deploymentEnabled":false' vercel.json
+          test "$(cat VERSION)" = "1.6.1"
           ! grep -R "serviceWorker.register" --include='*.js' --exclude-dir=.git --exclude-dir=.github --exclude-dir=tests .
       - name: Full test suite
         run: node --test tests/*.test.js
+      - name: Real-source resilience smoke
+        run: |
+          node <<'NODE'
+          const {buildNflSourcePolicy}=require('./api/nfl-source-policy');
+          const {parseNflverseSchedule}=require('./api/nfl-schedule');
+          const p=buildNflSourcePolicy(new Date());
+          async function requiredText(label,url){
+            const r=await fetch(url,{headers:p.csvHeaders,redirect:'follow'});
+            console.log(label,r.status,url);
+            if(!r.ok)throw new Error(`${label} failed ${r.status}`);
+            return await r.text();
+          }
+          await requiredText('roster',p.rosterCandidates[0].url);
+          let statsHealthy=null;
+          for(const candidate of p.statsCandidates){
+            const r=await fetch(candidate.url,{headers:p.csvHeaders,redirect:'follow'});
+            console.log('stats',candidate.kind,candidate.season,r.status);
+            if(r.ok){statsHealthy=candidate;break;}
+          }
+          if(!statsHealthy)throw new Error('no nflverse stats candidate is healthy');
+          const scheduleText=await requiredText('schedule',p.scheduleUrl);
+          const games=parseNflverseSchedule(scheduleText,{season:p.currentSeason});
+          console.log('schedule games',p.currentSeason,games.length);
+          if(games.length<200)throw new Error(`current-season schedule incomplete: ${games.length}`);
+          try{
+            const r=await fetch(p.scoreboardUrl,{headers:p.jsonHeaders});
+            console.log('ESPN optional',r.status);
+          }catch(error){
+            console.log('ESPN optional unavailable',String(error?.message||error));
+          }
+          NODE
       # Temporary branch-only workflow; remove after verification.
