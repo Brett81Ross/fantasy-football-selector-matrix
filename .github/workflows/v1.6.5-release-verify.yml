@@ -9,13 +9,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Verify exact candidate ancestry
+      - name: Verify exact candidate ancestry and workflow-only delta
         run: |
-          git rev-parse HEAD^ | grep -q '^f4b17c3d19c902dc2acea5c59e68f1fe9a74f02d$'
+          git merge-base --is-ancestor f4b17c3d19c902dc2acea5c59e68f1fe9a74f02d HEAD
+          test -z "$(git diff --name-only f4b17c3d19c902dc2acea5c59e68f1fe9a74f02d..HEAD | grep -v '^.github/workflows/v1.6.5-release-verify.yml$')"
       - name: Syntax and version
         run: |
           node --check api/app.js
