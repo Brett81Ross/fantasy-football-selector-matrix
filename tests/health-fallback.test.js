@@ -30,6 +30,7 @@ function loadHealth(fetchImpl) {
 function normalRoute(url, options = {}) {
   if (url.includes('/rosters/roster_2026.csv')) return response(200);
   if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
+  if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
   if (url.includes('site.api.espn.com')) {
     return response(200, { events: [], season: { year: 2026 } });
   }
@@ -43,6 +44,7 @@ test('current stats 404 with previous weekly success is a healthy fallback, not 
     if (url.includes('/rosters/roster_2026.csv')) return response(200);
     if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(404);
     if (url.includes('/stats_player/stats_player_week_2025.csv')) return response(200);
+    if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
     if (url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
@@ -66,7 +68,7 @@ test('health uses the same ESPN headers and limit as the runtime data engine', a
       sawScoreboard = true;
       assert.match(url, /limit=100/);
       assert.equal(options.headers.Accept, 'application/json');
-      assert.equal(options.headers['User-Agent'], 'Fantasy-Football-Matrix/1.5.5');
+      assert.equal(options.headers['User-Agent'], 'Fantasy-Football-Matrix/1.6.1');
       return response(200, { events: [] });
     }
     return normalRoute(url, options);
@@ -75,6 +77,7 @@ test('health uses the same ESPN headers and limit as the runtime data engine', a
   await handler({}, res);
   assert.equal(sawScoreboard, true);
   assert.equal(res.body.data.liveScoreboard.ok, true);
+  assert.equal(res.body.data.liveScoreboard.required, false);
 });
 
 test('all stats sources failing degrades health without taking roster data offline', async t => {
@@ -83,6 +86,7 @@ test('all stats sources failing degrades health without taking roster data offli
   const handler = loadHealth(async url => {
     if (url.includes('/rosters/roster_2026.csv')) return response(200);
     if (url.includes('stats_player') || url.includes('player_stats/player_stats.csv')) return response(404);
+    if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
     if (url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
@@ -101,6 +105,7 @@ test('legacy performance fallback is explicit and degraded rather than falsely p
     if (url.includes('/rosters/roster_2026.csv')) return response(200);
     if (url.includes('/stats_player/')) return response(404);
     if (url.includes('/player_stats/player_stats.csv')) return response(200);
+    if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
     if (url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
@@ -120,6 +125,7 @@ test('current roster failure with previous roster success is STALE rather than O
     if (url.includes('/rosters/roster_2026.csv')) return response(404);
     if (url.includes('/rosters/roster_2025.csv')) return response(200);
     if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
+    if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
     if (url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
@@ -138,6 +144,7 @@ test('all roster candidates failing returns OFFLINE', async t => {
   const handler = loadHealth(async url => {
     if (url.includes('/rosters/')) return response(404);
     if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
+    if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
     if (url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
@@ -148,13 +155,14 @@ test('all roster candidates failing returns OFFLINE', async t => {
   assert.equal(res.body.data.roster.ok, false);
 });
 
-test('warm instance preserves last successful scoreboard timestamp across a later failure', async t => {
+test('warm instance preserves last successful scoreboard timestamp across a later optional ESPN failure', async t => {
   const originalFetch = global.fetch;
   t.after(() => { global.fetch = originalFetch; });
   let failScoreboard = false;
   const handler = loadHealth(async url => {
     if (url.includes('/rosters/roster_2026.csv')) return response(200);
     if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
+    if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
     if (url.includes('site.api.espn.com')) return failScoreboard ? response(503) : response(200, { events: [] });
     return response(404);
   });
@@ -165,7 +173,8 @@ test('warm instance preserves last successful scoreboard timestamp across a late
   failScoreboard = true;
   const second = mockRes();
   await handler({}, second);
-  assert.equal(second.code, 206);
-  assert.equal(second.body.status, 'DEGRADED');
+  assert.equal(second.code, 200);
+  assert.equal(second.body.status, 'LIVE');
+  assert.equal(second.body.data.liveScoreboard.ok, false);
   assert.equal(second.body.data.liveScoreboard.lastSuccessfulAt, timestamp);
 });
