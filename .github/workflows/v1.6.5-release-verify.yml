@@ -1,0 +1,28 @@
+name: Fantasy v1.6.5 Release Verify
+on:
+  push:
+    branches:
+      - qa-v1.6.5-release
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify exact candidate ancestry
+        run: |
+          git rev-parse HEAD^ | grep -q '^f4b17c3d19c902dc2acea5c59e68f1fe9a74f02d$'
+      - name: Syntax and version
+        run: |
+          node --check api/app.js
+          test "$(cat VERSION)" = "1.6.5"
+      - name: Single splash regression
+        run: node --test tests/single-splash.test.js
+      - name: Full suite
+        run: node --test tests/*.test.js
+      - name: Guardrails
+        run: |
+          grep -q '"deploymentEnabled":false' vercel.json
+          ! grep -R "serviceWorker.register" --include='*.js' --exclude-dir=.git --exclude-dir=.github --exclude-dir=tests .
