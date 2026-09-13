@@ -5,7 +5,8 @@
   const VERSION_KEY='ffm-app-version';
   const LAST_GOOD_PREFIX='ffm-last-good:';
   const MAX_LAST_GOOD_AGE_MS=24*60*60*1000;
-  const STARTUP_RETRY_MS=100;
+  const STARTUP_RETRY_MS=250;
+  const STARTUP_FETCH_RETRY_MS=750;
   const STARTUP_TIMEOUT_MS=10000;
   let busy=false;
 
@@ -109,16 +110,14 @@
   async function checkForAppUpdate(){if(!('serviceWorker'in navigator))return;try{const reg=await navigator.serviceWorker.getRegistration();if(reg)await reg.update()}catch(_){}}
   function startWhenReady(){
     const started=Date.now();
+    let prepared=false;
     const attempt=async()=>{
-      if(appReady()){
-        restoreLastGood(true);
-        await checkForAppUpdate();
-        await refresh();
-        return;
-      }
-      if(Date.now()-started<STARTUP_TIMEOUT_MS)return setTimeout(attempt,STARTUP_RETRY_MS);
-      status('Football data initializing…',false);
-      setTimeout(startWhenReady,STARTUP_RETRY_MS);
+      if(!appReady()){if(Date.now()-started<STARTUP_TIMEOUT_MS)return setTimeout(attempt,STARTUP_RETRY_MS);status('Football data initializing…',false);return setTimeout(startWhenReady,STARTUP_RETRY_MS)}
+      if(document.hidden){if(Date.now()-started<STARTUP_TIMEOUT_MS)return setTimeout(attempt,STARTUP_RETRY_MS);return setTimeout(startWhenReady,STARTUP_RETRY_MS)}
+      if(!prepared){restoreLastGood(true);await checkForAppUpdate();prepared=true}
+      const ok=await refresh();
+      if(!ok&&Date.now()-started<STARTUP_TIMEOUT_MS)return setTimeout(attempt,STARTUP_FETCH_RETRY_MS);
+      if(!ok){status('NFL data refresh delayed · retrying…',false);return setTimeout(startWhenReady,STARTUP_FETCH_RETRY_MS)}
     };
     attempt();
   }
