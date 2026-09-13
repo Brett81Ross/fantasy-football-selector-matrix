@@ -6,15 +6,19 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const app=fs.readFileSync(path.join(root,'api','app.js'),'utf8');
 const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const splash=fs.readFileSync(path.join(root,'splash.js'),'utf8');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
 const vercel=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
 
-test('web runtime does not add a second custom splash after the platform launch splash',()=>{
-  assert.equal(app.includes('/splash.js'),false,'api/app.js must not inject splash.js');
-  assert.equal(index.includes('/splash.js'),false,'index.html must not load splash.js');
+test('web runtime keeps the preferred branded splash without duplicating it in the static shell',()=>{
+  assert.equal(app.includes('/splash.js'),true,'api/app.js must inject the branded splash');
+  assert.equal(index.includes('/splash.js'),false,'index.html must not separately load splash.js');
 });
 
-test('standalone app launch behavior and deployment guardrails remain intact',()=>{
+test('standalone Android launch frame blends into the branded splash and deployment guardrails remain intact',()=>{
   assert.equal(manifest.display,'standalone');
+  assert.equal(manifest.background_color,'#040a06');
+  assert.equal(manifest.theme_color,'#040a06');
+  assert.match(splash,/#040a06/);
   assert.equal(vercel.git.deploymentEnabled,false);
 });
