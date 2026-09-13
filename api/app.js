@@ -10,6 +10,7 @@ module.exports=async function handler(req,res){
     html=html.replaceAll('Fantasy Football Selector Matrix™','Fantasy Football Matrix™').replaceAll('Fantasy Football Selector Matrix','Fantasy Football Matrix');
     html=html.replace(/v1\.1\.0/g,`v${VERSION}`);
     html=html.replace(/if\('serviceWorker' in navigator\)navigator\.serviceWorker\.register\('\/sw\.js'\)\.catch\(\(\)=>\{\}\);?/g,'');
+    html=html.replace('applySettingsLabels();loadData();','applySettingsLabels();');
 
     const runtimeVersion=`<script>window.__FFM_VERSION__=${JSON.stringify(VERSION)};</script>`;
     const swRetirement=`<script>(function(){try{const retire=async()=>{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();await Promise.allSettled(regs.map(r=>r.unregister()));}if('caches' in window){const keys=await caches.keys();await Promise.allSettled(keys.filter(k=>k.startsWith('ff-matrix-')||k.startsWith('fantasy-football-')).map(k=>caches.delete(k)));}};retire().catch(()=>{});}catch(_){}})();</script>`;
