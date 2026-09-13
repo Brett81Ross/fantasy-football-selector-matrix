@@ -31,7 +31,7 @@ jobs:
         run: node --test tests/*.test.js
       - name: Real-source resilience smoke
         run: |
-          node <<'NODE'
+          node --input-type=commonjs <<'NODE'
           const {buildNflSourcePolicy}=require('./api/nfl-source-policy');
           const {parseNflverseSchedule}=require('./api/nfl-schedule');
           const p=buildNflSourcePolicy(new Date());
