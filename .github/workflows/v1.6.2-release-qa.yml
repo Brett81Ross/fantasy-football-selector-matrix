@@ -1,0 +1,46 @@
+name: Fantasy v1.6.2 Release QA
+on:
+  push:
+    branches:
+      - hotfix-v1.6.2-ui-responsiveness
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax checks
+        run: |
+          node --check ui-performance.js
+          node --check version-lock.js
+          node --check api/app.js
+      - name: Release guardrails
+        run: |
+          test "$(cat VERSION)" = "1.6.2"
+          grep -q '"deploymentEnabled":false' vercel.json
+          ! grep -R "serviceWorker.register" --include='*.js' --exclude-dir=.git --exclude-dir=.github --exclude-dir=tests .
+      - name: Targeted performance regression
+        run: node --test tests/season-intelligence-performance.test.js
+      - name: Full test suite
+        run: node --test tests/*.test.js
+      - name: 650-player Matrix performance smoke
+        run: |
+          node <<'NODE'
+          const {performance}=require('node:perf_hooks');
+          const perf=require('./ui-performance');
+          const positions=['QB','RB','WR','TE'];
+          const players=Array.from({length:650},(_,i)=>({id:`P${i}`,position:positions[i%4],rookie:false,games:8,status:'ACT',metrics:{production:(i*13)%100,opportunity:(i*17)%100,consistency:60,ceiling:(i*19)%100,trend:55,availability:100}}));
+          const root={state:{players,drafted:new Set(),teams:12,risk:'balanced'},document:{getElementById:()=>({value:'4'})},weightsFor:()=>({production:.25,opportunity:.20,consistency:.12,ceiling:.17,trend:.10,scarcity:.10,availability:.06})};
+          const installed=perf.installDraftScoreCache(root);
+          const start=performance.now();
+          for(let pass=0;pass<2;pass++)players.slice().sort((a,b)=>root.matrixScore(b,4,true)-root.matrixScore(a,4,true));
+          const elapsed=performance.now()-start;
+          console.log(`650-player double-sort: ${elapsed.toFixed(2)}ms; scarcity builds=${installed.stats.scarcityBuilds}; matrix computations=${installed.stats.matrixComputations}`);
+          if(installed.stats.scarcityBuilds!==1)throw new Error('scarcity cache rebuilt unexpectedly');
+          if(installed.stats.matrixComputations>650)throw new Error('Matrix score cache missed repeated values');
+          if(elapsed>250)throw new Error(`performance smoke exceeded 250ms: ${elapsed.toFixed(2)}ms`);
+          NODE
+      # Temporary branch-only release workflow; remove after verification.
