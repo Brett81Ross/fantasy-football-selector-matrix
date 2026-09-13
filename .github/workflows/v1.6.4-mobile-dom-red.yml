@@ -1,0 +1,16 @@
+name: Fantasy v1.6.4 Mobile DOM RED
+on:
+  push:
+    branches:
+      - hotfix-v1.6.4-mobile-dom-latency
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Mobile DOM regression
+        run: node --test tests/mobile-dom-latency.test.js
