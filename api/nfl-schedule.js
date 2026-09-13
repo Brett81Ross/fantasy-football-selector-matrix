@@ -40,7 +40,7 @@ function easternUtcOffsetHours(year,month,day){
   return day<dstEnd?4:5;
 }
 
-function easternKickoffToIso(gameday,gametime){
+function kickoffEasternToIso(gameday,gametime){
   const dateMatch=String(gameday||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const timeMatch=String(gametime||'').match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if(!dateMatch||!timeMatch)return null;
@@ -71,24 +71,23 @@ function parseNflverseSchedule(text,{season=null,week=null}={}){
   const targetWeek=week==null?null:Number(week);
   const games=[];
   for(const row of csvRows(text)){
-    const rowSeason=Number(row.season),rowWeek=Number(row.week);
+    const rowSeason=Number(row.season),rowWeek=Number(row.week),gameType=String(row.game_type||'REG').toUpperCase();
     if(targetSeason!=null&&rowSeason!==targetSeason)continue;
     if(targetWeek!=null&&rowWeek!==targetWeek)continue;
-    if(String(row.game_type||'REG').toUpperCase()!=='REG')continue;
-    const kickoffAt=easternKickoffToIso(row.gameday,row.gametime);
+    if(gameType!=='REG')continue;
+    const kickoffAt=kickoffEasternToIso(row.gameday,row.gametime);
     const away=normalizeTeam(row.away_team),home=normalizeTeam(row.home_team);
     if(!row.game_id||!kickoffAt||!away||!home)continue;
     games.push({
       id:String(row.game_id),
-      name:`${away} at ${home}`,
       kickoffAt,
       state:completed(row)?'post':'pre',
       teams:[away,home],
-      season:rowSeason,
-      week:rowWeek
+      week:rowWeek,
+      gameType
     });
   }
   return games.sort((a,b)=>a.kickoffAt.localeCompare(b.kickoffAt)||a.id.localeCompare(b.id));
 }
 
-module.exports={easternKickoffToIso,parseNflverseSchedule};
+module.exports={kickoffEasternToIso,parseNflverseSchedule};
