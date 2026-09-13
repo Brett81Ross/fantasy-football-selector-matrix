@@ -17,9 +17,11 @@ test('browser runtime loads Matchup Simulator after confidence and lineup depend
  assert.ok(simulator<seasonUi,'Matchup Simulator must load before Season Intelligence UI');
 });
 
-test('Matchup Simulator wiring does not change version authority or deployment policy',()=>{
- const app=fs.readFileSync(path.join(__dirname,'..','api','app.js'),'utf8');
- const vercel=fs.readFileSync(path.join(__dirname,'..','vercel.json'),'utf8');
- assert.match(app,/const VERSION='1\.6\.0'/);
+test('Matchup Simulator wiring preserves shared version authority and deployment policy',()=>{
+ const root=path.join(__dirname,'..');
+ const app=fs.readFileSync(path.join(root,'api','app.js'),'utf8');
+ const vercel=fs.readFileSync(path.join(root,'vercel.json'),'utf8');
+ assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
+ assert.equal(fs.readFileSync(path.join(root,'VERSION'),'utf8').trim(),'1.6.1');
  assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
 });
