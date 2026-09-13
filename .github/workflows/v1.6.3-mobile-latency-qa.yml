@@ -1,0 +1,22 @@
+name: Fantasy v1.6.3 Mobile Latency QA
+on:
+  push:
+    branches:
+      - hotfix-v1.6.3-mobile-tap-latency
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Mobile latency regression
+        run: node --test tests/mobile-tap-latency.test.js
+      - name: Full suite
+        run: node --test tests/*.test.js
+      - name: Guardrails
+        run: |
+          grep -q '"deploymentEnabled":false' vercel.json
+          ! grep -R "serviceWorker.register" --include='*.js' --exclude-dir=.git --exclude-dir=.github --exclude-dir=tests .
