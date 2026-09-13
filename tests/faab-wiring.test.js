@@ -43,11 +43,12 @@ test('unknown canonical FAAB total remains null instead of becoming zero',()=>{
  assert.match(contracts,/waiverBudgetTotal/);
 });
 
-test('ABL-31 wiring preserves version deployment lock and no service-worker registration',()=>{
+test('ABL-31 wiring preserves shared version deployment lock and no service-worker registration',()=>{
  const app=read('api/app.js');
  const ui=read('season-intelligence.js');
  const vercel=read('vercel.json');
- assert.match(app,/const VERSION='1\.6\.0'/);
+ assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
+ assert.equal(read('VERSION').trim(),'1.6.1');
  assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
  assert.doesNotMatch(ui,/serviceWorker\.register|Notification\.requestPermission/);
 });
