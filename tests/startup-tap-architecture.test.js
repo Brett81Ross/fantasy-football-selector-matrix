@@ -27,8 +27,8 @@ test('live draft recommendation work is deferred until after the tap can paint',
 test('live draft tap handlers reuse the rendered recommendation instead of recomputing synchronously',()=>{
   const source=read('live-draft-mode.js');
   const directCalls=[...source.matchAll(/recommendation\(assignmentState\(\)\)/g)].length;
-  assert.equal(directCalls,1,'recommendation should be computed only by render, not again inside tap handlers');
-  assert.match(source,/currentRecommendation/,'tap handlers must reuse the last rendered recommendation');
+  assert.equal(directCalls,0,'tap handlers must not recompute the recommendation synchronously');
+  assert.match(source,/currentRecommendation\s*=\s*recommendation\(assignments\)/,'render must cache the recommendation for tap handlers');
 });
 
 test('draft row buttons use one delegated listener instead of rebinding every rendered row',()=>{
