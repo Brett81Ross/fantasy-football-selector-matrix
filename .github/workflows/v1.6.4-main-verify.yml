@@ -1,0 +1,27 @@
+name: Fantasy v1.6.4 Main Verification
+on:
+  push:
+    branches:
+      - main
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax and version
+        run: |
+          node --check ui-performance.js
+          node --check api/app.js
+          test "$(cat VERSION)" = "1.6.4"
+          node -e "if(require('./version')!=='1.6.4')process.exit(1)"
+      - name: Full suite
+        run: node --test tests/*.test.js
+      - name: Mobile DOM regression
+        run: node --test tests/mobile-dom-latency.test.js
+      - name: Guardrails
+        run: |
+          grep -q '"deploymentEnabled":false' vercel.json
+          ! grep -R "serviceWorker.register" --include='*.js' --exclude-dir=.git --exclude-dir=.github --exclude-dir=tests .
