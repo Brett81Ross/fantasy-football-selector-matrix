@@ -28,9 +28,9 @@ function buildNflSourcePolicy(now = new Date()) {
     scheduleUrl: 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv',
     scoreboardUrl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100',
     scoreboardCandidates: [
-      {name:'ESPN site',url:'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100'},
       {name:'ESPN web',url:'https://site.web.api.espn.com/apis/v2/scoreboard/header?sport=football&league=nfl&region=us&lang=en&contentorigin=espn'},
-      {name:'ESPN CDN',url:'https://cdn.espn.com/core/nfl/scoreboard?xhr=1&limit=100'}
+      {name:'ESPN CDN',url:'https://cdn.espn.com/core/nfl/scoreboard?xhr=1&limit=100'},
+      {name:'ESPN site',url:'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100'}
     ],
     csvHeaders: {
       'User-Agent': `Fantasy-Football-Matrix/${VERSION}`,
