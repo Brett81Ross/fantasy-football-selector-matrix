@@ -13,15 +13,22 @@ async function probeCsv(candidate,timeoutMs=7000){
 }
 
 async function probeScoreboard(timeoutMs=6000){
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs),started=Date.now();
-  try{
-    const response=await fetch(SOURCE_POLICY.scoreboardUrl,{signal:controller.signal,cache:'no-store',headers:SOURCE_POLICY.jsonHeaders});
-    const ms=Date.now()-started;
-    if(!response.ok)return{ok:false,http:response.status,ms,error:null,data:null};
-    const data=await response.json();
-    return{ok:true,http:response.status,ms,error:null,data};
-  }catch(error){return{ok:false,http:0,ms:Date.now()-started,error:String(error?.message||error),data:null}}
-  finally{clearTimeout(timer)}
+  const attempts=[],candidates=SOURCE_POLICY.scoreboardCandidates||[{name:'ESPN site',url:SOURCE_POLICY.scoreboardUrl}];
+  for(const candidate of candidates){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs),started=Date.now();
+    try{
+      const response=await fetch(candidate.url,{signal:controller.signal,cache:'no-store',headers:SOURCE_POLICY.jsonHeaders});
+      const ms=Date.now()-started;
+      if(!response.ok){attempts.push({provider:candidate.name,ok:false,http:response.status,ms,error:null});continue}
+      const data=await response.json();
+      attempts.push({provider:candidate.name,ok:true,http:response.status,ms,error:null});
+      return{ok:true,http:response.status,ms,error:null,data,provider:candidate.name,attempts};
+    }catch(error){
+      attempts.push({provider:candidate.name,ok:false,http:0,ms:Date.now()-started,error:String(error?.message||error)});
+    }finally{clearTimeout(timer)}
+  }
+  const last=attempts[attempts.length-1]||{};
+  return{ok:false,http:last.http||0,ms:last.ms||0,error:last.error||null,data:null,provider:null,attempts};
 }
 
 async function firstHealthy(candidates){
@@ -84,14 +91,15 @@ module.exports=async function handler(req,res){
   };
   const games=Array.isArray(scoreboard.data?.events)?scoreboard.data.events.length:null;
   const liveScoreboard={
-    source:'ESPN',
+    source:scoreboard.provider||'ESPN',
     required:false,
     ok:scoreboard.ok,
-    fallback:false,
+    fallback:scoreboard.attempts.length>1,
     http:scoreboard.http,
     ms:scoreboard.ms,
     games,
     error:scoreboard.error||null,
+    attempts:scoreboard.attempts,
     lastSuccessfulAt:markSuccess('scoreboard',scoreboard.ok,checkedAt)
   };
 
