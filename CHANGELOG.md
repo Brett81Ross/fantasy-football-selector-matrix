@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.7
+
+- Reduced residual Android tap latency in Season Intelligence by reusing derived player values while the underlying NFL player dataset is unchanged.
+- Re-tapping the already active Season Intelligence tab now exits without rerunning its render path.
+- Replaced repeated per-row Draft Board click-handler binding with a single delegated handler.
+- Compare taps now update only the affected Draft Board row instead of rebuilding the full visible board.
+- Added regression coverage for tap responsiveness and HTML-escaping safety.
+
 ## 1.5.5
 
 - Retired the Fantasy Football Matrix service worker and removed offline app-shell caching from the active application path.
