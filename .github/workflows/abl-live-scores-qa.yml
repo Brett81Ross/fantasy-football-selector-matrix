@@ -1,0 +1,32 @@
+name: Fantasy Live Scores ABL QA
+
+on:
+  push:
+    branches:
+      - abl/fantasy-live-scores-v1.6.8
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax checks
+        run: |
+          node --check api/live-scoreboard.js
+          node --check api/nfl-data.js
+          node --check api/nfl-schedule.js
+          node --check api/nfl-source-policy.js
+          node --check api/health.js
+          node --check live-refresh.js
+      - name: Regression tests
+        run: node --test
