@@ -67,8 +67,8 @@ test('health uses the same ESPN headers and limit as the runtime data engine', a
     if (url.includes('site.api.espn.com')) {
       sawScoreboard = true;
       assert.match(url, /limit=100/);
-      assert.equal(options.headers.Accept, 'application/json');
-      assert.equal(options.headers['User-Agent'], 'Fantasy-Football-Matrix/1.6.7');
+      assert.match(options.headers.Accept, /application\/json/);
+      assert.match(options.headers['User-Agent'], /Fantasy-Football-Matrix\/1\.6\.8/);
       return response(200, { events: [] });
     }
     return normalRoute(url, options);
@@ -177,4 +177,27 @@ test('warm instance preserves last successful scoreboard timestamp across a late
   assert.equal(second.body.status, 'LIVE');
   assert.equal(second.body.data.liveScoreboard.ok, false);
   assert.equal(second.body.data.liveScoreboard.lastSuccessfulAt, timestamp);
+});
+
+test('health falls back to the alternate ESPN endpoint after a primary 403', async t => {
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  const attempted = [];
+  const handler = loadHealth(async url => {
+    attempted.push(url);
+    if (url.includes('/rosters/roster_2026.csv')) return response(200);
+    if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
+    if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
+    if (url.includes('site.api.espn.com')) return response(403);
+    if (url.includes('site.web.api.espn.com')) return response(200, { sports: [{ leagues: [{ events: [] }] }] });
+    return response(404);
+  });
+  const res = mockRes();
+  await handler({}, res);
+  assert.equal(res.code, 200);
+  assert.equal(res.body.data.liveScoreboard.ok, true);
+  assert.equal(res.body.data.liveScoreboard.fallback, true);
+  assert.equal(res.body.data.liveScoreboard.source, 'ESPN web');
+  assert.deepEqual(res.body.data.liveScoreboard.attempts.map(x => x.http), [403, 200]);
+  assert.equal(attempted.some(url => url.includes('cdn.espn.com')), false);
 });
