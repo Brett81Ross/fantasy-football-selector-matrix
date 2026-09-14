@@ -1,0 +1,68 @@
+name: Prepare v1.6.8 Release Candidate
+
+on:
+  push:
+    branches:
+      - hotfix-v1.6.8-sleeper-player-id
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: contains(github.event.head_commit.message, 'add v1.6.8 release-candidate workflow')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix-v1.6.8-sleeper-player-id
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Align release version and guards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          Path('VERSION').write_text('1.6.8\n')
+
+          version = Path('version.js')
+          text = version.read_text()
+          if "module.exports='1.6.7';" not in text:
+              raise SystemExit('version.js was not at expected v1.6.7 authority')
+          version.write_text(text.replace("module.exports='1.6.7';", "module.exports='1.6.8';", 1))
+
+          changed_tests = []
+          for path in Path('tests').glob('*.test.js'):
+              text = path.read_text()
+              if '1.6.7' in text:
+                  path.write_text(text.replace('1.6.7', '1.6.8'))
+                  changed_tests.append(str(path))
+          print('Updated release guards:', ', '.join(changed_tests) or '(none)')
+
+          changelog = Path('CHANGELOG.md')
+          text = changelog.read_text()
+          entry = """## 1.6.8\n\n- Fixed Sleeper roster identity resolution so provider IDs are crosswalked through the Sleeper directory GSIS ID before Season Intelligence uses them.\n- Prevented unresolved provider IDs from being treated as zero-value Waiver Assassin drop candidates.\n- Added regression coverage ensuring raw Sleeper IDs cannot leak into waiver drop recommendations or their reasoning text.\n\n"""
+          if '## 1.6.8' not in text:
+              marker = '# Changelog\n\n'
+              if marker not in text:
+                  raise SystemExit('CHANGELOG heading not found')
+              changelog.write_text(text.replace(marker, marker + entry, 1))
+          PY
+      - name: Run player identity regression tests
+        run: node --test tests/player-id-resolution.test.js tests/sleeper-id-crosswalk.test.js tests/waiver-assassin.test.js
+      - name: Run full regression suite
+        run: node --test tests/*.test.js
+      - name: Confirm deployment lock and version authority
+        run: |
+          grep -q '"deploymentEnabled"[[:space:]]*:[[:space:]]*false' vercel.json
+          test "$(tr -d '\n\r ' < VERSION)" = "1.6.8"
+          node -e "if(require('./version')!=='1.6.8') process.exit(1)"
+      - name: Commit release candidate
+        run: |
+          git config user.name "Brett Ross"
+          git config user.email "rossbrett05@gmail.com"
+          git add VERSION version.js CHANGELOG.md tests
+          git commit -m "chore: prepare v1.6.8 player identity hotfix"
+          git push origin HEAD:hotfix-v1.6.8-sleeper-player-id
