@@ -4,8 +4,10 @@
   let whatIfResult=null;
   let whatIfType='START_SIT';
   let whatIfPartner='';
+  let playerValuesCacheRef=null;
+  let playerValuesCache={};
 
-  function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
   function num(v,f=0){const n=Number(v);return Number.isFinite(n)?n:f}
   function round(v,d=1){const p=10**d;return Math.round((num(v)+Number.EPSILON)*p)/p}
   function toneForRisk(risk){return num(risk)>=.7?'danger':num(risk)>=.4?'warn':'good'}
@@ -13,6 +15,7 @@
 
   function playerValues(){
     const list=(typeof state!=='undefined'&&Array.isArray(state.players))?state.players:[];
+    if(list===playerValuesCacheRef)return playerValuesCache;
     const values={};
     for(const p of list){
       const m=p.metrics||{};
@@ -27,6 +30,8 @@
         yearsExp:p.yearsExp,rookie:p.rookie,metrics:p.metrics||{}
       };
     }
+    playerValuesCacheRef=list;
+    playerValuesCache=values;
     return values;
   }
 
@@ -55,7 +60,7 @@
     if(footer?.parentNode)footer.parentNode.insertBefore(wrap,footer);else document.body.appendChild(wrap);
     const tabs=['Weekly Attack Plan','Command Center','Roster Doctor','Waiver Assassin','Trade Hunter','What-If Matrix','Playoff Path','Opponent Exploiter','Player Status'];
     document.getElementById('seasonTabs').innerHTML=tabs.map((t,i)=>`<button class="season-tab${i===0?' active':''}" data-season-tab="${esc(t)}">${esc(t)}</button>`).join('');
-    document.getElementById('seasonTabs').addEventListener('click',e=>{const b=e.target.closest('[data-season-tab]');if(!b)return;document.querySelectorAll('.season-tab').forEach(x=>x.classList.toggle('active',x===b));render(window.ffmLeagueSnapshot,b.dataset.seasonTab)});
+    document.getElementById('seasonTabs').addEventListener('click',e=>{const b=e.target.closest('[data-season-tab]');if(!b)return;if(b.classList.contains('active'))return;document.querySelectorAll('.season-tab').forEach(x=>x.classList.toggle('active',x===b));render(window.ffmLeagueSnapshot,b.dataset.seasonTab)});
   }
 
   function render(snapshot,tab='Weekly Attack Plan'){
