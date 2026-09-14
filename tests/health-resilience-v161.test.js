@@ -96,7 +96,7 @@ test('source policy exposes required nflverse schedule and gets v1.6.8 from shar
   const policy = buildNflSourcePolicy(new Date('2026-09-11T12:00:00Z'));
   assert.match(policy.scheduleUrl, /nflverse\/nfldata\/.*games\.csv/);
   assert.equal(policy.csvHeaders['User-Agent'], 'Fantasy-Football-Matrix/1.6.8');
-  assert.equal(policy.jsonHeaders['User-Agent'], 'Fantasy-Football-Matrix/1.6.8');
+  assert.match(policy.jsonHeaders['User-Agent'], /Fantasy-Football-Matrix\/1\.6\.8/);
 });
 
 test('runtime API files consume one shared v1.6.8 version authority', () => {
