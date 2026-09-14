@@ -16,3 +16,5 @@ jobs:
           node-version: '22'
       - name: Run tap latency regression tests
         run: node --test tests/mobile-tap-latency.test.js tests/mobile-dom-latency.test.js tests/mobile-tap-polish.test.js
+      - name: Run full regression suite
+        run: node --test tests/*.test.js
