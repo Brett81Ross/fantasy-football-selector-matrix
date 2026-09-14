@@ -7,7 +7,7 @@
   let playerValuesCacheRef=null;
   let playerValuesCache={};
 
-  function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
+  function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function num(v,f=0){const n=Number(v);return Number.isFinite(n)?n:f}
   function round(v,d=1){const p=10**d;return Math.round((num(v)+Number.EPSILON)*p)/p}
   function toneForRisk(risk){return num(risk)>=.7?'danger':num(risk)>=.4?'warn':'good'}
