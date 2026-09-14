@@ -17,6 +17,11 @@ test('re-tapping the already active season tab is a no-op',()=>{
   assert.match(source,/if\(b\.classList\.contains\('active'\)\)return/,'active season tab should not rerun the render path');
 });
 
+test('season tap optimization preserves HTML quote escaping',()=>{
+  const source=read('season-intelligence.js');
+  assert.match(source,/['"]&quot;['"]/,'season UI should preserve the complete &quot; HTML entity');
+});
+
 test('draft board tap handlers are delegated once instead of rebound after every render',()=>{
   const source=read('index.html');
   assert.doesNotMatch(source,/querySelectorAll\('\.compare-btn'\)\.forEach\(btn=>btn\.addEventListener/,'compare buttons should not be rebound after every board render');
