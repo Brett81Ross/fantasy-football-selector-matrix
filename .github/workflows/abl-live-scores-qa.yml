@@ -30,3 +30,28 @@ jobs:
           node --check live-refresh.js
       - name: Regression tests
         run: node --test
+      - name: Live provider smoke check
+        run: |
+          node <<'NODE'
+          const { buildNflSourcePolicy } = require('./api/nfl-source-policy');
+          const { normalizeEspnScoreboard } = require('./api/live-scoreboard');
+          const policy = buildNflSourcePolicy(new Date());
+          (async () => {
+            const attempts = [];
+            for (const candidate of policy.scoreboardCandidates) {
+              try {
+                const response = await fetch(candidate.url, { headers: policy.jsonHeaders });
+                const payload = response.ok ? await response.json() : null;
+                const events = payload ? normalizeEspnScoreboard(payload) : [];
+                attempts.push({ provider: candidate.name, http: response.status, events: events.length });
+                if (response.ok && events.length > 0) {
+                  console.log(JSON.stringify({ selected: candidate.name, events: events.length, attempts }));
+                  return;
+                }
+              } catch (error) {
+                attempts.push({ provider: candidate.name, error: String(error?.message || error) });
+              }
+            }
+            throw new Error('No live-score provider returned NFL events: ' + JSON.stringify(attempts));
+          })();
+          NODE
