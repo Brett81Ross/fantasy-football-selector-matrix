@@ -35,6 +35,33 @@
     window.dispatchEvent(new CustomEvent('ffm:kickoff-context',{detail:window.__FFM_KICKOFF_CONTEXT__}));
   }
   function requiredSourceHealth(data){return (data?.health?.scheduleFeed==='degraded'||data?.source?.scheduleError)?'DEGRADED':'LIVE'}
+  function scoreValue(value){return value===null||value===undefined||value===''?'—':String(value)}
+  function kickoffLabel(value){const stamp=Date.parse(value);return Number.isFinite(stamp)?new Date(stamp).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'}):'Scheduled'}
+  function renderScoreboard(data){
+    const app=document.querySelector('.app');if(!app)return;
+    let panel=document.getElementById('ffmLiveScoreboard');
+    if(!panel){
+      panel=document.createElement('section');panel.id='ffmLiveScoreboard';panel.setAttribute('aria-live','polite');
+      panel.style.cssText='margin:0 0 14px;padding:14px;border:1px solid rgba(57,255,20,.26);border-radius:16px;background:linear-gradient(145deg,rgba(13,24,18,.98),rgba(7,16,12,.98));box-shadow:0 12px 30px rgba(0,0,0,.2)';
+      const anchor=document.getElementById('dataStatus');
+      const block=anchor?.closest('.card')||anchor?.parentElement;
+      if(block?.parentNode)block.insertAdjacentElement('afterend',panel);else app.prepend(panel);
+    }
+    const live=Array.isArray(data?.liveEvents)?data.liveEvents.filter(game=>game?.state==='in'):[];
+    const scheduled=Array.isArray(data?.gameSchedule)?data.gameSchedule:[];
+    const completed=scheduled.filter(game=>game?.state==='post'&&(game?.scores?.away!=null||game?.scores?.home!=null));
+    const upcoming=scheduled.filter(game=>game?.state==='pre');
+    const games=(live.length?live:completed.length?completed:upcoming).slice(0,8);
+    const degraded=data?.health?.liveFeed==='degraded'||Boolean(data?.source?.liveError);
+    const mode=live.length?`${live.length} LIVE`:completed.length?'FINAL SCORES':degraded?'LIVE SCORES UNAVAILABLE':'UPCOMING';
+    const rows=games.map(game=>{
+      const teams=Array.isArray(game?.teams)?game.teams:['AWAY','HOME'];
+      const hasScore=game?.scores&&(game.scores.away!=null||game.scores.home!=null);
+      const detail=hasScore?`<strong style="font-variant-numeric:tabular-nums">${scoreValue(game.scores.away)} – ${scoreValue(game.scores.home)}</strong>`:`<span style="color:#93a59a">${kickoffLabel(game?.kickoffAt)}</span>`;
+      return `<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid rgba(147,165,154,.14)"><span style="font-weight:800">${teams[0]||'AWAY'} <span style="color:#93a59a;font-weight:600">at</span> ${teams[1]||'HOME'}<small style="display:block;color:#93a59a;margin-top:3px">${game?.status||''}</small></span>${detail}</div>`;
+    }).join('');
+    panel.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><strong>NFL SCOREBOARD · WEEK ${data?.currentWeek||'—'}</strong><span style="font-size:11px;font-weight:900;color:${live.length?'#39ff14':'#9cff35'}">${mode}</span></div>${rows||'<p style="margin:10px 0 0;color:#93a59a">No games are listed for the selected week.</p>'}`;
+  }
   function applyPayload(data,sourceHealth){
     if(!appReady()||!payloadUsable(data))return false;
     const drafted=state.drafted,compare=state.compare;
@@ -42,6 +69,7 @@
     if(drafted)state.drafted=drafted;if(compare)state.compare=compare;
     const health=sourceHealth||requiredSourceHealth(data);
     publishKickoffContext(data,health);
+    renderScoreboard(data);
     renderAll();
     return true;
   }
