@@ -19,6 +19,7 @@ test('parses a 2026 nflverse schedule row into a safe UTC kickoff instant',()=>{
     kickoffAt:'2026-09-13T17:00:00.000Z',
     state:'pre',
     teams:['CHI','CAR'],
+    scores:{away:null,home:null},
     week:1,
     gameType:'REG'
   }]);
@@ -38,7 +39,9 @@ test('completed games are post while future games are never invented as live',()
   ].join('\n');
   const games=parseNflverseSchedule(csv,2026);
   assert.equal(games[0].state,'post');
+  assert.deepEqual(games[0].scores,{away:10,home:13});
   assert.equal(games[1].state,'pre');
+  assert.deepEqual(games[1].scores,{away:null,home:null});
   assert.equal(games.some(game=>game.state==='in'),false);
 });
 
