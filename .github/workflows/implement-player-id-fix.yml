@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   implement:
-    if: github.event.head_commit.message == 'chore: add player identity implementation workflow'
+    if: contains(github.event.head_commit.message, 'repair player identity implementation workflow')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
