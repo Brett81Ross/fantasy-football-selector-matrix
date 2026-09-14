@@ -1,6 +1,7 @@
 const VERSION=require('../version');
 const {buildNflSourcePolicy}=require('./nfl-source-policy');
 const {parseNflverseSchedule}=require('./nfl-schedule');
+const {normalizeEspnScoreboard,mergeScheduleWithScoreboard}=require('./live-scoreboard');
 const SOURCE_POLICY=buildNflSourcePolicy(new Date());
 const CURRENT_SEASON=SOURCE_POLICY.currentSeason;
 const FANTASY_POSITIONS=new Set(['QB','RB','WR','TE','K']);
@@ -39,12 +40,20 @@ async function loadSchedule(){
   }catch(e){return{games:[],error:String(e?.message||e)}}
 }
 async function loadScoreboard(){
-  try{
-    const board=await fetchJson(SOURCE_POLICY.scoreboardUrl,5000);
-    const events=Array.isArray(board?.events)?board.events:[];
-    const active=events.filter(e=>e?.status?.type?.state==='in');
-    return{games:active.length,events:active.map(e=>({id:e.id,name:e.name,status:e?.status?.type?.shortDetail||'LIVE'})),season:board?.season?.year||null,week:board?.week?.number||null,error:''};
-  }catch(e){return{games:0,events:[],season:null,week:null,error:String(e?.message||e)}}
+  const attempts=[],candidates=SOURCE_POLICY.scoreboardCandidates||[{name:'ESPN site',url:SOURCE_POLICY.scoreboardUrl}];
+  for(const candidate of candidates){
+    try{
+      const board=await fetchJson(candidate.url,5000);
+      const events=normalizeEspnScoreboard(board);
+      const active=events.filter(event=>event.state==='in');
+      attempts.push({provider:candidate.name,ok:true,http:200});
+      return{games:active.length,events:active,allEvents:events,season:board?.season?.year||null,week:board?.week?.number||null,provider:candidate.name,error:'',attempts};
+    }catch(e){
+      attempts.push({provider:candidate.name,ok:false,error:String(e?.message||e)});
+    }
+  }
+  const last=attempts[attempts.length-1];
+  return{games:0,events:[],allEvents:[],season:null,week:null,provider:null,error:last?.error||'No live-score provider available',attempts};
 }
 function selectScheduleWeek(games,preferredWeek=null,nowMs=Date.now()){
   if(Number.isInteger(Number(preferredWeek))&&games.some(game=>game.week===Number(preferredWeek)))return Number(preferredWeek);
@@ -56,13 +65,16 @@ function selectScheduleWeek(games,preferredWeek=null,nowMs=Date.now()){
 async function live(){
   const [schedule,scoreboard]=await Promise.all([loadSchedule(),loadScoreboard()]);
   const week=selectScheduleWeek(schedule.games,scoreboard.week);
-  const gameSchedule=week==null?[]:schedule.games.filter(game=>game.week===week);
+  const currentSchedule=week==null?[]:schedule.games.filter(game=>game.week===week);
+  const gameSchedule=mergeScheduleWithScoreboard(currentSchedule,scoreboard.allEvents);
   return{
     games:scoreboard.games,
     events:scoreboard.events,
     gameSchedule,
     season:CURRENT_SEASON,
     week,
+    scoreProvider:scoreboard.provider,
+    scoreboardAttempts:scoreboard.attempts,
     scheduleError:schedule.error,
     scoreboardError:scoreboard.error
   };
@@ -118,7 +130,7 @@ async function buildPayload(scoring){
     liveEvents:liveData.events,
     gameSchedule:liveData.gameSchedule,
     health:{online:true,primary:'nflverse',teamsLoaded,rosterFailures:0,performanceFeed:statsSource.error?'degraded':'online',scheduleFeed:scheduleDegraded?'degraded':'online',liveFeed:scoreboardDegraded?'degraded':'online',liveRequired:false},
-    source:{name:'nflverse + optional ESPN',license:'nflverse CC BY 4.0',schedule:'nflverse games.csv',live:'ESPN public scoreboard (optional enrichment)',note:noteParts.join(' · '),fallback:sourceFallback,scheduleError:liveData.scheduleError,liveError:liveData.scoreboardError,statsError:statsSource.error||''},
+    source:{name:'nflverse + optional ESPN',license:'nflverse CC BY 4.0',schedule:'nflverse games.csv',live:liveData.scoreProvider||'ESPN multi-endpoint fallback (optional enrichment)',note:noteParts.join(' · '),fallback:sourceFallback,scheduleError:liveData.scheduleError,liveError:liveData.scoreboardError,liveProvider:liveData.scoreProvider,liveAttempts:liveData.scoreboardAttempts,statsError:statsSource.error||''},
     players:unique.slice(0,650)
   };
   cache.set(scoring,{payload,expires:Date.now()+5*60*1000});return payload;
