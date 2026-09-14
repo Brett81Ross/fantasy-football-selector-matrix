@@ -1,3 +1,4 @@
+// Regression gate for Sleeper provider IDs leaking into waiver recommendations.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createSleeperDraftProvider } = require('../draft-core/sleeper-provider');
