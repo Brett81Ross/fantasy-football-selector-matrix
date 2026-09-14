@@ -34,7 +34,9 @@ test('policy uses identical shared-version headers plus nflverse schedule and ru
   assert.match(p.jsonHeaders['User-Agent'], /Fantasy-Football-Matrix\/1\.6\.8/);
   assert.match(p.scheduleUrl, /nflverse\/nfldata\/.*games\.csv/);
   assert.equal(p.scoreboardCandidates.length,3);
-  assert.match(p.scoreboardCandidates[0].url, /limit=100/);
+  assert.equal(p.scoreboardCandidates[0].name, 'ESPN web');
+  assert.match(p.scoreboardCandidates[0].url, /contentorigin=espn/);
+  assert.match(p.scoreboardCandidates[2].url, /limit=100/);
 });
 
 test('data engine is wired to the canonical source policy and nflverse schedule parser', () => {
