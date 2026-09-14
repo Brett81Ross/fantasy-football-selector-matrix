@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.8
+
+- Fixed Sleeper roster identity resolution so provider IDs are crosswalked through the Sleeper directory GSIS ID before Season Intelligence uses them.
+- Prevented unresolved provider IDs from being treated as zero-value Waiver Assassin drop candidates.
+- Added regression coverage ensuring raw Sleeper IDs cannot leak into waiver drop recommendations or their reasoning text.
+
 ## 1.6.7
 
 - Reduced residual Android tap latency in Season Intelligence by reusing derived player values while the underlying NFL player dataset is unchanged.
