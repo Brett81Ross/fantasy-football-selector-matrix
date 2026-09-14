@@ -31,7 +31,7 @@ function normalRoute(url, options = {}) {
   if (url.includes('/rosters/roster_2026.csv')) return response(200);
   if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
   if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
-  if (url.includes('site.api.espn.com')) {
+  if (url.includes('site.web.api.espn.com') || url.includes('site.api.espn.com')) {
     return response(200, { events: [], season: { year: 2026 } });
   }
   return response(404);
@@ -45,7 +45,7 @@ test('current stats 404 with previous weekly success is a healthy fallback, not 
     if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(404);
     if (url.includes('/stats_player/stats_player_week_2025.csv')) return response(200);
     if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
-    if (url.includes('site.api.espn.com')) return response(200, { events: [] });
+    if (url.includes('site.web.api.espn.com') || url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
   const res = mockRes();
@@ -59,14 +59,14 @@ test('current stats 404 with previous weekly success is a healthy fallback, not 
   assert.deepEqual(res.body.data.performance.attempts.map(x => x.http), [404, 200]);
 });
 
-test('health uses the same ESPN headers and limit as the runtime data engine', async t => {
+test('health uses the same ESPN headers and verified web route as the runtime data engine', async t => {
   const originalFetch = global.fetch;
   t.after(() => { global.fetch = originalFetch; });
   let sawScoreboard = false;
   const handler = loadHealth(async (url, options = {}) => {
-    if (url.includes('site.api.espn.com')) {
+    if (url.includes('site.web.api.espn.com') || url.includes('site.api.espn.com')) {
       sawScoreboard = true;
-      assert.match(url, /limit=100/);
+      assert.match(url, /contentorigin=espn/);
       assert.match(options.headers.Accept, /application\/json/);
       assert.match(options.headers['User-Agent'], /Fantasy-Football-Matrix\/1\.6\.8/);
       return response(200, { events: [] });
@@ -87,7 +87,7 @@ test('all stats sources failing degrades health without taking roster data offli
     if (url.includes('/rosters/roster_2026.csv')) return response(200);
     if (url.includes('stats_player') || url.includes('player_stats/player_stats.csv')) return response(404);
     if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
-    if (url.includes('site.api.espn.com')) return response(200, { events: [] });
+    if (url.includes('site.web.api.espn.com') || url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
   const res = mockRes();
@@ -106,7 +106,7 @@ test('legacy performance fallback is explicit and degraded rather than falsely p
     if (url.includes('/stats_player/')) return response(404);
     if (url.includes('/player_stats/player_stats.csv')) return response(200);
     if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
-    if (url.includes('site.api.espn.com')) return response(200, { events: [] });
+    if (url.includes('site.web.api.espn.com') || url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
   const res = mockRes();
@@ -126,7 +126,7 @@ test('current roster failure with previous roster success is STALE rather than O
     if (url.includes('/rosters/roster_2025.csv')) return response(200);
     if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
     if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
-    if (url.includes('site.api.espn.com')) return response(200, { events: [] });
+    if (url.includes('site.web.api.espn.com') || url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
   const res = mockRes();
@@ -145,7 +145,7 @@ test('all roster candidates failing returns OFFLINE', async t => {
     if (url.includes('/rosters/')) return response(404);
     if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
     if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
-    if (url.includes('site.api.espn.com')) return response(200, { events: [] });
+    if (url.includes('site.web.api.espn.com') || url.includes('site.api.espn.com')) return response(200, { events: [] });
     return response(404);
   });
   const res = mockRes();
@@ -163,7 +163,7 @@ test('warm instance preserves last successful scoreboard timestamp across a late
     if (url.includes('/rosters/roster_2026.csv')) return response(200);
     if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
     if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
-    if (url.includes('site.api.espn.com')) return failScoreboard ? response(503) : response(200, { events: [] });
+    if (url.includes('site.web.api.espn.com') || url.includes('site.api.espn.com')) return failScoreboard ? response(503) : response(200, { events: [] });
     return response(404);
   });
   const first = mockRes();
@@ -179,7 +179,7 @@ test('warm instance preserves last successful scoreboard timestamp across a late
   assert.equal(second.body.data.liveScoreboard.lastSuccessfulAt, timestamp);
 });
 
-test('health falls back to the alternate ESPN endpoint after a primary 403', async t => {
+test('health falls back to ESPN CDN after the verified web route fails', async t => {
   const originalFetch = global.fetch;
   t.after(() => { global.fetch = originalFetch; });
   const attempted = [];
@@ -188,8 +188,9 @@ test('health falls back to the alternate ESPN endpoint after a primary 403', asy
     if (url.includes('/rosters/roster_2026.csv')) return response(200);
     if (url.includes('/stats_player/stats_player_week_2026.csv')) return response(200);
     if (url.includes('nflverse/nfldata') && url.includes('games.csv')) return response(200);
-    if (url.includes('site.api.espn.com')) return response(403);
-    if (url.includes('site.web.api.espn.com')) return response(200, { sports: [{ leagues: [{ events: [] }] }] });
+    if (url.includes('site.web.api.espn.com')) return response(403);
+    if (url.includes('cdn.espn.com')) return response(200, { content: { sbData: { events: [] } } });
+    if (url.includes('site.api.espn.com')) return response(500);
     return response(404);
   });
   const res = mockRes();
@@ -197,7 +198,7 @@ test('health falls back to the alternate ESPN endpoint after a primary 403', asy
   assert.equal(res.code, 200);
   assert.equal(res.body.data.liveScoreboard.ok, true);
   assert.equal(res.body.data.liveScoreboard.fallback, true);
-  assert.equal(res.body.data.liveScoreboard.source, 'ESPN web');
+  assert.equal(res.body.data.liveScoreboard.source, 'ESPN CDN');
   assert.deepEqual(res.body.data.liveScoreboard.attempts.map(x => x.http), [403, 200]);
-  assert.equal(attempted.some(url => url.includes('cdn.espn.com')), false);
+  assert.equal(attempted.some(url => url.includes('site.api.espn.com')), false);
 });
