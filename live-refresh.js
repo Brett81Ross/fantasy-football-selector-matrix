@@ -37,6 +37,7 @@
   function requiredSourceHealth(data){return (data?.health?.scheduleFeed==='degraded'||data?.source?.scheduleError)?'DEGRADED':'LIVE'}
   function scoreValue(value){return value===null||value===undefined||value===''?'—':String(value)}
   function kickoffLabel(value){const stamp=Date.parse(value);return Number.isFinite(stamp)?new Date(stamp).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'}):'Scheduled'}
+  function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
   function renderScoreboard(data){
     const app=document.querySelector('.app');if(!app)return;
     let panel=document.getElementById('ffmLiveScoreboard');
@@ -57,10 +58,10 @@
     const rows=games.map(game=>{
       const teams=Array.isArray(game?.teams)?game.teams:['AWAY','HOME'];
       const hasScore=game?.scores&&(game.scores.away!=null||game.scores.home!=null);
-      const detail=hasScore?`<strong style="font-variant-numeric:tabular-nums">${scoreValue(game.scores.away)} – ${scoreValue(game.scores.home)}</strong>`:`<span style="color:#93a59a">${kickoffLabel(game?.kickoffAt)}</span>`;
-      return `<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid rgba(147,165,154,.14)"><span style="font-weight:800">${teams[0]||'AWAY'} <span style="color:#93a59a;font-weight:600">at</span> ${teams[1]||'HOME'}<small style="display:block;color:#93a59a;margin-top:3px">${game?.status||''}</small></span>${detail}</div>`;
+      const detail=hasScore?`<strong style="font-variant-numeric:tabular-nums">${escapeHtml(scoreValue(game.scores.away))} – ${escapeHtml(scoreValue(game.scores.home))}</strong>`:`<span style="color:#93a59a">${escapeHtml(kickoffLabel(game?.kickoffAt))}</span>`;
+      return `<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid rgba(147,165,154,.14)"><span style="font-weight:800">${escapeHtml(teams[0]||'AWAY')} <span style="color:#93a59a;font-weight:600">at</span> ${escapeHtml(teams[1]||'HOME')}<small style="display:block;color:#93a59a;margin-top:3px">${escapeHtml(game?.status||'')}</small></span>${detail}</div>`;
     }).join('');
-    panel.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><strong>NFL SCOREBOARD · WEEK ${data?.currentWeek||'—'}</strong><span style="font-size:11px;font-weight:900;color:${live.length?'#39ff14':'#9cff35'}">${mode}</span></div>${rows||'<p style="margin:10px 0 0;color:#93a59a">No games are listed for the selected week.</p>'}`;
+    panel.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><strong>NFL SCOREBOARD · WEEK ${escapeHtml(data?.currentWeek||'—')}</strong><span style="font-size:11px;font-weight:900;color:${live.length?'#39ff14':'#9cff35'}">${escapeHtml(mode)}</span></div>${rows||'<p style="margin:10px 0 0;color:#93a59a">No games are listed for the selected week.</p>'}`;
   }
   function applyPayload(data,sourceHealth){
     if(!appReady()||!payloadUsable(data))return false;
@@ -69,8 +70,8 @@
     if(drafted)state.drafted=drafted;if(compare)state.compare=compare;
     const health=sourceHealth||requiredSourceHealth(data);
     publishKickoffContext(data,health);
-    renderScoreboard(data);
     renderAll();
+    renderScoreboard(data);
     return true;
   }
   function saveLastGood(data){
