@@ -9,12 +9,12 @@ test('deployment remains locked',()=>{
   assert.equal(config.git?.deploymentEnabled,false);
 });
 
-test('version authority remains shared and pinned to v1.6.6',()=>{
+test('version authority remains shared and pinned to v1.6.7',()=>{
   const app=fs.readFileSync(path.join(root,'api/app.js'),'utf8');
   assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
-  assert.equal(fs.readFileSync(path.join(root,'VERSION'),'utf8').trim(),'1.6.6');
+  assert.equal(fs.readFileSync(path.join(root,'VERSION'),'utf8').trim(),'1.6.7');
   delete require.cache[require.resolve(path.join(root,'version.js'))];
-  assert.equal(require(path.join(root,'version.js')),'1.6.6');
+  assert.equal(require(path.join(root,'version.js')),'1.6.7');
 });
 
 test('universal provider runtime is loaded and hard-coded league profile is not',()=>{
