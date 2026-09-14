@@ -83,6 +83,7 @@ function parseNflverseSchedule(text,{season=null,week=null}={}){
       kickoffAt,
       state:completed(row)?'post':'pre',
       teams:[away,home],
+      scores:{away:String(row.away_score??'').trim()===''?null:Number(row.away_score),home:String(row.home_score??'').trim()===''?null:Number(row.home_score)},
       week:rowWeek,
       gameType
     });
