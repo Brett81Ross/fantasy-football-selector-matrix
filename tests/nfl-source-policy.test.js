@@ -28,10 +28,10 @@ test('preseason policy prefers prior-year weekly stats without duplicate candida
 test('policy uses identical shared-version headers plus nflverse schedule and runtime scoreboard URLs', () => {
   const { buildNflSourcePolicy } = require('../api/nfl-source-policy');
   const p = buildNflSourcePolicy(new Date('2026-09-10T12:00:00Z'));
-  assert.equal(p.csvHeaders['User-Agent'], 'Fantasy-Football-Matrix/1.6.6');
+  assert.equal(p.csvHeaders['User-Agent'], 'Fantasy-Football-Matrix/1.6.7');
   assert.equal(p.csvHeaders.Accept, 'text/csv,text/plain,*/*');
   assert.equal(p.jsonHeaders.Accept, 'application/json');
-  assert.equal(p.jsonHeaders['User-Agent'], 'Fantasy-Football-Matrix/1.6.6');
+  assert.equal(p.jsonHeaders['User-Agent'], 'Fantasy-Football-Matrix/1.6.7');
   assert.match(p.scheduleUrl, /nflverse\/nfldata\/.*games\.csv/);
   assert.match(p.scoreboardUrl, /limit=100/);
 });
