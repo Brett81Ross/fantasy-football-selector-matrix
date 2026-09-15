@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
 
+# Final release-candidate regression gate for the bounded v1.6.9 fix.
 jobs:
   qa:
     runs-on: ubuntu-latest
