@@ -10,12 +10,12 @@ const splash=fs.readFileSync(path.join(root,'splash.js'),'utf8');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
 const vercel=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
 
-test('Android installed runtime does not add a second web splash',()=>{
-  assert.equal(app.includes('/splash.js'),false,'api/app.js must not inject a second web splash');
-  assert.equal(index.includes('/splash.js'),false,'index.html must not load splash.js');
+test('branded CactusByte splash is restored as the visible app splash',()=>{
+  assert.equal(app.includes('/splash.js?v=${VERSION}'),true,'api/app.js must inject the branded splash once');
+  assert.equal(index.includes('/splash.js'),false,'index.html must not separately load splash.js');
 });
 
-test('standalone Android launch frame blends into the branded splash and deployment guardrails remain intact',()=>{
+test('Android launch frame visually hands off into the branded splash and deployment stays locked',()=>{
   assert.equal(manifest.display,'standalone');
   assert.equal(manifest.background_color,'#040a06');
   assert.equal(manifest.theme_color,'#040a06');
