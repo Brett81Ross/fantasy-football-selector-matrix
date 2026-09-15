@@ -1,6 +1,6 @@
 {
   "$schema":"https://openapi.vercel.sh/vercel.json",
-  "git":{"deploymentEnabled":true},
+  "git":{"deploymentEnabled":false},
   "cleanUrls": false,
   "trailingSlash": false,
   "routes": [
@@ -9,7 +9,7 @@
       "dest": "/api/app",
       "headers": {
         "Cache-Control": "no-store, max-age=0, must-revalidate",
-        "CDN-Cache-Control": "no-store"
+        "CDN-Cache-Control":"no-store"
       }
     },
     { "handle": "filesystem" }
