@@ -68,7 +68,7 @@ test('health uses the same ESPN headers and verified web route as the runtime da
       sawScoreboard = true;
       assert.match(url, /contentorigin=espn/);
       assert.match(options.headers.Accept, /application\/json/);
-      assert.match(options.headers['User-Agent'], /Fantasy-Football-Matrix\/1\.6\.10/);
+      assert.match(options.headers['User-Agent'], /Fantasy-Football-Matrix\/1\.6\.11/);
       return response(200, { events: [] });
     }
     return normalRoute(url, options);

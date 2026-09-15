@@ -59,7 +59,7 @@ test('ABL-36 keeps release payment service-worker and transaction guardrails int
   const report=read('season-core/weekly-report-card.js');
   const ui=read('season-report-card-ui.js');
   assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
-  assert.equal(read('VERSION').trim(),'1.6.10');
+  assert.equal(read('VERSION').trim(),'1.6.11');
   assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
   assert.doesNotMatch(registry,/enforced\s*:\s*true/);
   assert.doesNotMatch(registry,/stripe|checkout|payment|billing/i);

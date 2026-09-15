@@ -45,6 +45,6 @@ test('live refresh publishes team kickoff context for the Command Center',()=>{
 test('ABL-30 wiring leaves shared version authority and deployment lock intact',()=>{
  const app=read('api/app.js');
  assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
- assert.equal(read('VERSION').trim(),'1.6.10');
+ assert.equal(read('VERSION').trim(),'1.6.11');
  assert.match(read('vercel.json'),/"deploymentEnabled"\s*:\s*false/);
 });
