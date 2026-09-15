@@ -89,25 +89,25 @@ test('schedule and ESPN failures stay explicitly degraded without pretending tim
   assert.equal(res.body.data.liveScoreboard.ok, false);
 });
 
-test('source policy exposes required nflverse schedule and gets v1.6.8 from shared version authority', () => {
+test('source policy exposes required nflverse schedule and gets v1.6.9 from shared version authority', () => {
   const policyPath = require.resolve('../api/nfl-source-policy');
   delete require.cache[policyPath];
   const { buildNflSourcePolicy } = require('../api/nfl-source-policy');
   const policy = buildNflSourcePolicy(new Date('2026-09-11T12:00:00Z'));
   assert.match(policy.scheduleUrl, /nflverse\/nfldata\/.*games\.csv/);
-  assert.equal(policy.csvHeaders['User-Agent'], 'Fantasy-Football-Matrix/1.6.8');
-  assert.match(policy.jsonHeaders['User-Agent'], /Fantasy-Football-Matrix\/1\.6\.8/);
+  assert.equal(policy.csvHeaders['User-Agent'], 'Fantasy-Football-Matrix/1.6.9');
+  assert.match(policy.jsonHeaders['User-Agent'], /Fantasy-Football-Matrix\/1\.6\.9/);
 });
 
-test('runtime API files consume one shared v1.6.8 version authority', () => {
+test('runtime API files consume one shared v1.6.9 version authority', () => {
   const root = path.join(__dirname, '..');
   const versionPath = path.join(root, 'version.js');
   assert.equal(fs.existsSync(versionPath), true, 'version.js should be the runtime authority');
   if (fs.existsSync(versionPath)) {
     delete require.cache[require.resolve(versionPath)];
-    assert.equal(require(versionPath), '1.6.8');
+    assert.equal(require(versionPath), '1.6.9');
   }
-  assert.equal(fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim(), '1.6.8');
+  assert.equal(fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim(), '1.6.9');
   for (const relative of ['api/app.js', 'api/health.js', 'api/nfl-data.js', 'api/nfl-source-policy.js']) {
     const source = fs.readFileSync(path.join(root, relative), 'utf8');
     assert.match(source, /require\(['"]\.\.\/version['"]\)/, `${relative} should import shared version authority`);
