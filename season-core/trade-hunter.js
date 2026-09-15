@@ -110,6 +110,7 @@
     for(const other of snapshot.rosters||[]){
       const otherId=text(other.rosterId);
       if(!otherId||otherId===mineId) continue;
+      const counterpartLabel=text(other.teamName)||text(other.ownerName)||`Roster ${otherId}`;
       const otherReport=reports.get(otherId);
       const otherGroups=positionPlayers(other,values,snapshot);
       const otherWeak=weaknessMap(otherReport);
@@ -145,6 +146,7 @@
           const expectedImprovement=round(analysis.rosterBenefit.compositeEdge,2);
           opportunities.push(Object.freeze({
             counterpartRosterId:otherId,
+            counterpartLabel,
             givePlayerIds:Object.freeze([give.id]),
             getPlayerIds:Object.freeze([get.id]),
             needSolved:get.position,
@@ -160,7 +162,7 @@
             before:analysis.before,
             after:analysis.after,
             deltas:analysis.deltas,
-            reason:`Target ${get.name} from roster ${otherId} to strengthen ${get.position}; offer ${give.name} from your ${give.position} depth. ${analysis.reasons?.[1]||''}`.trim()
+            reason:`Target ${get.name} from ${counterpartLabel} to strengthen ${get.position}; offer ${give.name} from your ${give.position} depth. ${analysis.reasons?.[1]||''}`.trim()
           }));
         }
       }

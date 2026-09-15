@@ -71,6 +71,8 @@
     return {
       rosterId: text(raw?.rosterId),
       ownerId: text(raw?.ownerId) || null,
+      ownerName: text(raw?.ownerName) || null,
+      teamName: text(raw?.teamName) || null,
       playerIds,
       starterPlayerIds,
       reservePlayerIds: reservePlayerIds.filter(id => playerSet.has(id)),

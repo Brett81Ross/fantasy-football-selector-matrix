@@ -400,10 +400,11 @@
         const id = text(leagueId);
         if (!id) throw new Error('Sleeper season snapshot requires leagueId');
 
-        const [rawLeague, nflState, rawRosters, directory] = await Promise.all([
+        const [rawLeague, nflState, rawRosters, rawUsers, directory] = await Promise.all([
           fetchJson(`${API}/league/${encodeURIComponent(id)}`, 'Sleeper league'),
           fetchJson(`${API}/state/nfl`, 'Sleeper NFL state'),
           fetchJson(`${API}/league/${encodeURIComponent(id)}/rosters`, 'Sleeper rosters'),
+          fetchJson(`${API}/league/${encodeURIComponent(id)}/users`, 'Sleeper league users').catch(() => []),
           getSleeperDirectory()
         ]);
         const league = await normalizeLeague(rawLeague);
@@ -413,6 +414,9 @@
           : [];
         const matchups = Array.isArray(rawMatchups) ? rawMatchups : [];
         const matchupByRoster = new Map(matchups.map(item => [text(item?.roster_id), item]));
+        const usersById = new Map((Array.isArray(rawUsers) ? rawUsers : [])
+          .map(item => [text(item?.user_id), item])
+          .filter(([userId]) => userId));
 
         const expectedWeeks = [];
         if (week && league.playoffWeekStart && week < league.playoffWeekStart) {
@@ -433,14 +437,20 @@
         let myRosterId = null;
         const rosters = (Array.isArray(rawRosters) ? rawRosters : []).map(rawRoster => {
           const rosterId = text(rawRoster?.roster_id);
-          if (text(rawRoster?.owner_id) === text(user?.user_id)) myRosterId = rosterId;
+          const ownerId = text(rawRoster?.owner_id);
+          const owner = usersById.get(ownerId) || {};
+          const ownerName = text(owner?.display_name || owner?.username) || null;
+          const teamName = text(owner?.metadata?.team_name) || ownerName;
+          if (ownerId === text(user?.user_id)) myRosterId = rosterId;
           const resolveList = values => [...new Set((Array.isArray(values) ? values : [])
             .map(value => resolveRosterPlayerId(value, directory))
             .filter(Boolean))];
           const matchup = matchupByRoster.get(rosterId);
           return {
             rosterId,
-            ownerId: text(rawRoster?.owner_id) || null,
+            ownerId: ownerId || null,
+            ownerName,
+            teamName,
             playerIds: resolveList(rawRoster?.players),
             starterPlayerIds: resolveList(matchup?.starters || rawRoster?.starters),
             reservePlayerIds: resolveList(rawRoster?.reserve),

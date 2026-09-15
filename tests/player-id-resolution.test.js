@@ -27,6 +27,10 @@ function unresolvedSleeperFetch(url) {
     { roster_id:1, owner_id:'U1', players:['10232'], starters:['10232'], reserve:[] },
     { roster_id:2, owner_id:'U2', players:[], starters:[], reserve:[] }
   ]));
+  if (url.endsWith('/league/L1/users')) return Promise.resolve(response([
+    { user_id:'U1', username:'testuser', display_name:'Brett', metadata:{team_name:'Cactus Crushers'} },
+    { user_id:'U2', username:'weststep', display_name:'WestStep', metadata:{team_name:'WestStep'} }
+  ]));
   if (url.endsWith('/players/nfl')) return Promise.resolve(response({
     '10232':{
       player_id:'10232',
@@ -54,6 +58,8 @@ test('season roster resolves a Sleeper provider ID through directory gsis_id bef
   assert.deepEqual(snapshot.ownedPlayerIds, ['00-0099999']);
   assert.deepEqual(snapshot.freeAgentPlayerIds, ['00-0000002']);
   assert.equal(snapshot.playerStatuses['00-0099999'].providerPlayerId, '10232');
+  assert.equal(snapshot.rosters.find(r => r.rosterId === '1').ownerName, 'Brett');
+  assert.equal(snapshot.rosters.find(r => r.rosterId === '1').teamName, 'Cactus Crushers');
 });
 
 const slots = [
