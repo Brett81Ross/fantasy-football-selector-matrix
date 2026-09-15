@@ -74,8 +74,8 @@ jobs:
           )
           replace_exact(
               'season-core/trade-hunter.js',
-              "counterpartRosterId:otherId,\n            givePlayerIds:",
-              "counterpartRosterId:otherId,\n            counterpartLabel,\n            givePlayerIds:"
+              "opportunities.push(Object.freeze({\n            counterpartRosterId:otherId,\n            givePlayerIds:",
+              "opportunities.push(Object.freeze({\n            counterpartRosterId:otherId,\n            counterpartLabel,\n            givePlayerIds:"
           )
           replace_exact(
               'season-core/trade-hunter.js',
