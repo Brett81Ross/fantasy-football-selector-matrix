@@ -1,0 +1,24 @@
+name: Fantasy v1.6.9 Roster Labels QA
+
+on:
+  push:
+    branches:
+      - hotfix/fantasy-roster-labels-v1.6.9
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Regression tests
+        run: node --test
