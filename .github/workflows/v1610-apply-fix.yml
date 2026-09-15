@@ -25,7 +25,9 @@ jobs:
         with:
           node-version: 22
       - name: Apply guarded startup patch
-        run: python .github/scripts/v1610_fix.py
+        run: |
+          python .github/scripts/v1610_fix.py
+          python .github/scripts/v1610_fix_regex.py
       - name: Full regression suite
         run: node --test
       - name: Verify deployment stays locked
