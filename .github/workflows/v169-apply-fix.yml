@@ -1,0 +1,121 @@
+name: Apply Fantasy v1.6.9 Roster Label Fix
+
+on:
+  push:
+    branches:
+      - hotfix/fantasy-roster-labels-v1.6.9
+    paths:
+      - .github/workflows/v169-apply-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: hotfix/fantasy-roster-labels-v1.6.9
+          fetch-depth: 0
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply exact bounded fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_exact(path, old, new, expected=1):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != expected:
+                  raise SystemExit(f"{path}: expected {expected} occurrences, found {count}: {old[:100]!r}")
+              p.write_text(text.replace(old, new))
+
+          # Sleeper league user labels are UX enrichment only; a user-list outage must not break ownership sync.
+          replace_exact(
+              'draft-core/sleeper-provider.js',
+              "const [rawLeague, nflState, rawRosters, directory] = await Promise.all([\n          fetchJson(`${API}/league/${encodeURIComponent(id)}`, 'Sleeper league'),\n          fetchJson(`${API}/state/nfl`, 'Sleeper NFL state'),\n          fetchJson(`${API}/league/${encodeURIComponent(id)}/rosters`, 'Sleeper rosters'),\n          getSleeperDirectory()\n        ]);",
+              "const [rawLeague, nflState, rawRosters, rawUsers, directory] = await Promise.all([\n          fetchJson(`${API}/league/${encodeURIComponent(id)}`, 'Sleeper league'),\n          fetchJson(`${API}/state/nfl`, 'Sleeper NFL state'),\n          fetchJson(`${API}/league/${encodeURIComponent(id)}/rosters`, 'Sleeper rosters'),\n          fetchJson(`${API}/league/${encodeURIComponent(id)}/users`, 'Sleeper league users').catch(() => []),\n          getSleeperDirectory()\n        ]);"
+          )
+          replace_exact(
+              'draft-core/sleeper-provider.js',
+              "const matchupByRoster = new Map(matchups.map(item => [text(item?.roster_id), item]));",
+              "const matchupByRoster = new Map(matchups.map(item => [text(item?.roster_id), item]));\n        const usersById = new Map((Array.isArray(rawUsers) ? rawUsers : [])\n          .map(item => [text(item?.user_id), item])\n          .filter(([userId]) => userId));"
+          )
+          replace_exact(
+              'draft-core/sleeper-provider.js',
+              "const rosterId = text(rawRoster?.roster_id);\n          if (text(rawRoster?.owner_id) === text(user?.user_id)) myRosterId = rosterId;",
+              "const rosterId = text(rawRoster?.roster_id);\n          const ownerId = text(rawRoster?.owner_id);\n          const owner = usersById.get(ownerId) || {};\n          const ownerName = text(owner?.display_name || owner?.username) || null;\n          const teamName = text(owner?.metadata?.team_name) || ownerName;\n          if (ownerId === text(user?.user_id)) myRosterId = rosterId;"
+          )
+          replace_exact(
+              'draft-core/sleeper-provider.js',
+              "ownerId: text(rawRoster?.owner_id) || null,\n            playerIds:",
+              "ownerId: ownerId || null,\n            ownerName,\n            teamName,\n            playerIds:"
+          )
+
+          # Preserve provider labels in the canonical season snapshot.
+          replace_exact(
+              'season-core/contracts.js',
+              "ownerId: text(raw?.ownerId) || null,\n      playerIds,",
+              "ownerId: text(raw?.ownerId) || null,\n      ownerName: text(raw?.ownerName) || null,\n      teamName: text(raw?.teamName) || null,\n      playerIds,"
+          )
+
+          # Trade Hunter keeps ownership semantics, but now exposes a human-readable counterpart label.
+          replace_exact(
+              'season-core/trade-hunter.js',
+              "const otherId=text(other.rosterId);\n      if(!otherId||otherId===mineId) continue;\n      const otherReport=reports.get(otherId);",
+              "const otherId=text(other.rosterId);\n      if(!otherId||otherId===mineId) continue;\n      const counterpartLabel=text(other.teamName)||text(other.ownerName)||`Roster ${otherId}`;\n      const otherReport=reports.get(otherId);"
+          )
+          replace_exact(
+              'season-core/trade-hunter.js',
+              "counterpartRosterId:otherId,\n            givePlayerIds:",
+              "counterpartRosterId:otherId,\n            counterpartLabel,\n            givePlayerIds:"
+          )
+          replace_exact(
+              'season-core/trade-hunter.js',
+              "reason:`Target ${get.name} from roster ${otherId} to strengthen ${get.position}; offer ${give.name} from your ${give.position} depth. ${analysis.reasons?.[1]||''}`.trim()",
+              "reason:`Target ${get.name} from ${counterpartLabel} to strengthen ${get.position}; offer ${give.name} from your ${give.position} depth. ${analysis.reasons?.[1]||''}`.trim()"
+          )
+
+          # Clarify trade recommendations without changing What-If Matrix field labels.
+          replace_exact('season-intelligence.js', ' → GET ${(a.getPlayerIds||[])', ' → TRADE FOR ${(a.getPlayerIds||[])')
+          replace_exact('season-intelligence.js', ' → Get ${(t.getPlayerIds||[])', ' → Trade for ${(t.getPlayerIds||[])')
+
+          # Provider regression proves Sleeper team/owner labels make it into the snapshot.
+          replace_exact(
+              'tests/player-id-resolution.test.js',
+              "if (url.endsWith('/league/L1/rosters')) return Promise.resolve(response([\n    { roster_id:1, owner_id:'U1', players:['10232'], starters:['10232'], reserve:[] },\n    { roster_id:2, owner_id:'U2', players:[], starters:[], reserve:[] }\n  ]));",
+              "if (url.endsWith('/league/L1/rosters')) return Promise.resolve(response([\n    { roster_id:1, owner_id:'U1', players:['10232'], starters:['10232'], reserve:[] },\n    { roster_id:2, owner_id:'U2', players:[], starters:[], reserve:[] }\n  ]));\n  if (url.endsWith('/league/L1/users')) return Promise.resolve(response([\n    { user_id:'U1', username:'testuser', display_name:'Brett', metadata:{team_name:'Cactus Crushers'} },\n    { user_id:'U2', username:'weststep', display_name:'WestStep', metadata:{team_name:'WestStep'} }\n  ]));"
+          )
+          replace_exact(
+              'tests/player-id-resolution.test.js',
+              "assert.equal(snapshot.playerStatuses['00-0099999'].providerPlayerId, '10232');",
+              "assert.equal(snapshot.playerStatuses['00-0099999'].providerPlayerId, '10232');\n  assert.equal(snapshot.rosters.find(r => r.rosterId === '1').ownerName, 'Brett');\n  assert.equal(snapshot.rosters.find(r => r.rosterId === '1').teamName, 'Cactus Crushers');"
+          )
+
+          # v1.6.9 shared version authority + current-release test expectations only.
+          Path('VERSION').write_text('1.6.9\n')
+          Path('version.js').write_text("'use strict';\nmodule.exports='1.6.9';\n")
+          for p in Path('tests').glob('*.test.js'):
+              text = p.read_text()
+              if '1.6.8' in text:
+                  p.write_text(text.replace('1.6.8', '1.6.9'))
+
+      - name: Full regression suite
+        run: node --test
+      - name: Verify deployment stays locked
+        run: |
+          node -e "const fs=require('fs');const v=JSON.parse(fs.readFileSync('vercel.json','utf8'));if(v.git?.deploymentEnabled!==false)process.exit(1)"
+      - name: Commit bounded fix
+        run: |
+          git config user.name "Brett  Ross"
+          git config user.email "rossbrett05@gmail.com"
+          git add VERSION version.js draft-core/sleeper-provider.js season-core/contracts.js season-core/trade-hunter.js season-core/waiver-assassin.js season-intelligence.js tests
+          git commit -m "fix: clarify roster ownership and player labels for v1.6.9"
+          git push origin HEAD:hotfix/fantasy-roster-labels-v1.6.9
