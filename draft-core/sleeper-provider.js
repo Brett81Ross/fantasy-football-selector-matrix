@@ -220,6 +220,8 @@
       if (playerMap().has(id)) return id;
       const entry = directory && typeof directory === 'object' ? directory[id] : null;
       if (!entry || typeof entry !== 'object') return id;
+      const gsisId = text(entry.gsis_id ?? entry.gsisId);
+      if (gsisId && playerMap().has(gsisId)) return gsisId;
       return resolveSleeperPlayerId({
         player_id: id,
         metadata: {

@@ -21,6 +21,7 @@
   }
 
   function playerRecord(id, values, snapshot) {
+    const known=values.has(id);
     const raw=values.get(id)||{};
     const normalized=playerStatus.normalizePlayerStatus(snapshot?.playerStatuses?.[id]||{});
     const risk=playerStatus.statusRisk(normalized,snapshot?.freshness||{});
@@ -29,6 +30,7 @@
       : {score:risk.confidenceMultiplier*100};
     return {
       id,
+      known,
       name:text(raw.name)||id,
       position:pos(raw.position),
       value:num(raw.value,num(raw.projection)),
@@ -62,7 +64,7 @@
   function chooseDrop(snapshot, rosterId, add, rosterPlayers, lineup, playerValues, cls) {
     let best=null;
     for (const drop of rosterPlayers) {
-      if (drop.id===add.id) continue;
+      if (drop.id===add.id || !drop.known || !drop.position) continue;
       if (cls==='STASH') {
         const score=-(drop.value+drop.projection*2);
         if (!best || score>best.score) best={drop,score,lineupDelta:0};
