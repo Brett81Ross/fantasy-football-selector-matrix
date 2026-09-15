@@ -6,11 +6,11 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('Android standalone launch uses the native launch splash only',()=>{
+test('Android standalone launch hands off into the branded splash without duplicate static loading',()=>{
   const app=read('api/app.js');
   const index=read('index.html');
-  assert.equal(app.includes('/splash.js'),false,'api/app.js must not inject a second web splash after Android native launch');
-  assert.equal(index.includes('/splash.js'),false,'static shell must not load a second web splash');
+  assert.equal(app.includes('/splash.js?v=${VERSION}'),true,'api/app.js must inject the branded splash once');
+  assert.equal(index.includes('/splash.js'),false,'static shell must not separately load splash.js');
 });
 
 test('saved Sleeper league blocks generic NFL paint until restore finishes',()=>{
