@@ -1,9 +1,9 @@
-name: Fantasy v1.6.10 Startup QA
+name: Fantasy v1.6.11 Splash QA
 
 on:
   push:
     branches:
-      - hotfix/fantasy-startup-v1.6.10
+      - hotfix/fantasy-splash-handoff-v1.6.11
   workflow_dispatch:
 
 permissions:
