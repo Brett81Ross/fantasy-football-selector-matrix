@@ -11,6 +11,7 @@
 
   function scoring(){try{return (typeof state!=='undefined'&&state.scoring)||'ppr'}catch(_){return'ppr'}}
   function appReady(){try{return typeof state!=='undefined'&&Array.isArray(state.players)&&typeof renderAll==='function'}catch(_){return false}}
+  function sleeperRestorePending(){return window.__FFM_SLEEPER_RESTORE_PENDING__===true}
   function lastGoodKey(){return `${LAST_GOOD_PREFIX}${VERSION}:${scoring()}`}
   function payloadUsable(data){return Array.isArray(data?.players)&&data.players.length>=40&&data.players.every(p=>p&&p.id&&p.name&&p.position)}
   function ageLabel(ms){const mins=Math.max(0,Math.round(ms/60000));if(mins<2)return'just now';if(mins<60)return`${mins}m ago`;const hrs=Math.round(mins/60);return`${hrs}h ago`}
@@ -70,6 +71,7 @@
     if(drafted)state.drafted=drafted;if(compare)state.compare=compare;
     const health=sourceHealth||requiredSourceHealth(data);
     publishKickoffContext(data,health);
+    if(sleeperRestorePending())return true;
     renderAll();
     renderScoreboard(data);
     return true;
@@ -111,6 +113,11 @@
       const sourceHealth=requiredSourceHealth(data);
       if(!applyPayload(data,sourceHealth))throw new Error('App not ready to apply player payload');
       saveLastGood(data);
+      if(sleeperRestorePending()){
+        status('Restoring Sleeper league…',false,'Sleeper');
+        const note=document.getElementById('draftSourceNote');if(note)note.textContent='Restoring your saved Sleeper league before showing recommendations.';
+        return true;
+      }
       const live=Number(data.liveGames||0),teams=Number(data.health?.teamsLoaded||0),partial=teams<32;
       const draftDegraded=data.health?.performanceFeed==='degraded'||Boolean(data.source?.fallback)||partial;
       const timingDegraded=data.health?.scheduleFeed==='degraded'||Boolean(data.source?.scheduleError);
@@ -152,6 +159,7 @@
     attempt();
   }
 
+  window.addEventListener('ffm:sleeper-restore-complete',e=>{if(!e.detail?.restored)refresh()});
   window.addEventListener('focus',()=>{checkForAppUpdate();refresh()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkForAppUpdate();refresh()}});
   startWhenReady();

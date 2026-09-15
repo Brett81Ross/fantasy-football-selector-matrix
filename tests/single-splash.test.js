@@ -10,9 +10,9 @@ const splash=fs.readFileSync(path.join(root,'splash.js'),'utf8');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
 const vercel=JSON.parse(fs.readFileSync(path.join(root,'vercel.json'),'utf8'));
 
-test('web runtime keeps the preferred branded splash without duplicating it in the static shell',()=>{
-  assert.equal(app.includes('/splash.js'),true,'api/app.js must inject the branded splash');
-  assert.equal(index.includes('/splash.js'),false,'index.html must not separately load splash.js');
+test('Android installed runtime does not add a second web splash',()=>{
+  assert.equal(app.includes('/splash.js'),false,'api/app.js must not inject a second web splash');
+  assert.equal(index.includes('/splash.js'),false,'index.html must not load splash.js');
 });
 
 test('standalone Android launch frame blends into the branded splash and deployment guardrails remain intact',()=>{

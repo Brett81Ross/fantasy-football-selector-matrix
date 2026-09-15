@@ -118,7 +118,40 @@
     function populateSelects(){if(!state.players.length)return;const sorted=[...state.players].sort((a,b)=>a.name.localeCompare(b.name));const options=sorted.map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.position)} ${esc(p.team)}</option>`).join('');$('givePlayer').innerHTML=options;$('getPlayer').innerHTML=options;$('playerOptions').innerHTML=sorted.map(p=>`<option value="${esc(p.name)}">${esc(p.position)} · ${esc(p.team)}</option>`).join('');if(sorted[1])$('getPlayer').value=sorted[1].id}
     function analyzeTrade(){const give=state.players.find(p=>p.id===$('givePlayer').value),get=state.players.find(p=>p.id===$('getPlayer').value);if(!give||!get)return;const giveScore=matrixScore(give,5,false),getScore=matrixScore(get,5,false),diff=getScore-giveScore,verdict=diff>=7?'ACCEPT':diff<=-7?'DECLINE':'EVEN RANGE';$('tradeResult').innerHTML=`<div class="pick"><div class="eyebrow">${verdict}</div><div class="pick-top"><div class="player"><div class="player-name">${esc(get.name)}</div><div class="player-meta">Receive ${get.position} · ${get.team}</div></div><div class="score"><strong>${diff>0?'+':''}${diff}</strong><span>VALUE GAP</span></div></div><div class="why">Profile scores: ${esc(get.name)} ${getScore} vs ${esc(give.name)} ${giveScore}. This does not yet include your exact roster depth or the other manager's lineup.</div></div>`}
 
-    async function loadData(){const status=$('dataStatus');status.innerHTML='<span><i class="live-dot loading"></i><strong>Loading football data…</strong></span><span>nflverse</span>';try{const res=await fetch(`/api/nfl-data?scoring=${encodeURIComponent(state.scoring)}`,{cache:'no-store'});if(!res.ok)throw new Error('Data request failed');const data=await res.json();state.players=data.players||[];state.dataMeta=data;$('dataSeason').textContent=data.source?.note||`${data.statsSeason} data`;status.innerHTML=`<span><i class="live-dot"></i><strong>Data engine online</strong></span><span>${esc(data.source?.note||'nflverse')}</span>`;$('draftSourceNote').textContent=`Data source: ${data.source?.note}. Matrix scores are calculated by this app from player production, opportunity, trend, consistency, ceiling, availability, positional scarcity, draft round, and your risk setting.`;renderAll()}catch(err){console.error(err);state.players=[];status.innerHTML='<span><i class="live-dot error"></i><strong>Football data unavailable</strong></span><span>Retry later</span>';$('draftPick').innerHTML='<div class="empty">The live data source could not be reached. No demo score is being substituted.</div>';$('draftList').innerHTML='<div class="empty">No live player data available.</div>'}}
+    async function loadData(){
+      const status=$('dataStatus');
+      const restoring=window.__FFM_SLEEPER_RESTORE_PENDING__===true;
+      status.innerHTML=restoring
+        ? '<span><i class="live-dot loading"></i><strong>Restoring Sleeper league…</strong></span><span>Sleeper</span>'
+        : '<span><i class="live-dot loading"></i><strong>Loading football data…</strong></span><span>nflverse</span>';
+      try{
+        const res=await fetch(`/api/nfl-data?scoring=${encodeURIComponent(state.scoring)}`,{cache:'no-store'});
+        if(!res.ok)throw new Error('Data request failed');
+        const data=await res.json();
+        state.players=data.players||[];
+        state.dataMeta=data;
+        if(window.__FFM_SLEEPER_RESTORE_PENDING__===true){
+          $('dataSeason').textContent='Sleeper';
+          status.innerHTML='<span><i class="live-dot loading"></i><strong>Restoring Sleeper league…</strong></span><span>Sleeper</span>';
+          $('draftSourceNote').textContent='Restoring your saved Sleeper league before showing recommendations.';
+          return;
+        }
+        $('dataSeason').textContent=data.source?.note||`${data.statsSeason} data`;
+        status.innerHTML=`<span><i class="live-dot"></i><strong>Data engine online</strong></span><span>${esc(data.source?.note||'nflverse')}</span>`;
+        $('draftSourceNote').textContent=`Data source: ${data.source?.note}. Matrix scores are calculated by this app from player production, opportunity, trend, consistency, ceiling, availability, positional scarcity, draft round, and your risk setting.`;
+        renderAll();
+      }catch(err){
+        console.error(err);
+        state.players=[];
+        if(window.__FFM_SLEEPER_RESTORE_PENDING__===true){
+          window.__FFM_SLEEPER_RESTORE_PENDING__=false;
+          window.dispatchEvent(new CustomEvent('ffm:sleeper-restore-complete',{detail:{restored:false,reason:'nfl-data-unavailable'}}));
+        }
+        status.innerHTML='<span><i class="live-dot error"></i><strong>Football data unavailable</strong></span><span>Retry later</span>';
+        $('draftPick').innerHTML='<div class="empty">The live data source could not be reached. No demo score is being substituted.</div>';
+        $('draftList').innerHTML='<div class="empty">No live player data available.</div>';
+      }
+    }
     function applySettingsLabels(){$('heroFormat').textContent=state.scoring==='half'?'Half-PPR':state.scoring==='standard'?'Standard':'PPR';$('heroRisk').textContent=state.risk[0].toUpperCase()+state.risk.slice(1);$('heroTeams').textContent=state.teams;$('setFormat').value=state.scoring;$('setTeams').value=String(state.teams);$('setRisk').value=state.risk;$('setNextPick').value=state.picksUntilNext}
 
     document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));btn.classList.add('active');$(btn.dataset.tab).classList.add('active')}));

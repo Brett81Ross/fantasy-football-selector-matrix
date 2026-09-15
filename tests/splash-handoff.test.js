@@ -5,9 +5,9 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('keeps the branded CactusByte splash as the web splash',()=>{
+test('Android launch relies on the installed-PWA splash without a second web splash',()=>{
   const app=read('api/app.js');
-  assert.match(app,/\/splash\.js\?v=\$\{VERSION\}/);
+  assert.equal(app.includes('/splash.js'),false);
 });
 
 test('Android system launch frame blends into the branded splash without changing standalone mode',()=>{

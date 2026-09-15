@@ -22,6 +22,6 @@ test('Matchup Simulator wiring preserves shared version authority and deployment
  const app=fs.readFileSync(path.join(root,'api','app.js'),'utf8');
  const vercel=fs.readFileSync(path.join(root,'vercel.json'),'utf8');
  assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
- assert.equal(fs.readFileSync(path.join(root,'VERSION'),'utf8').trim(),'1.6.9');
+ assert.equal(fs.readFileSync(path.join(root,'VERSION'),'utf8').trim(),'1.6.10');
  assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
 });

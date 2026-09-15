@@ -49,7 +49,7 @@ test('ABL-35 preserves deployment shared-version service-worker and transaction 
   const whatIf=read('season-core/what-if-matrix.js');
   const ui=read('season-intelligence.js');
   assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
-  assert.equal(read('VERSION').trim(),'1.6.9');
+  assert.equal(read('VERSION').trim(),'1.6.10');
   assert.match(vercel,/"deploymentEnabled"\s*:\s*false/);
   assert.doesNotMatch(whatIf,/fetch\s*\(/);
   assert.doesNotMatch(ui,/navigator\.serviceWorker\.register/);

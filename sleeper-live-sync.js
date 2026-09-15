@@ -203,10 +203,27 @@
     document.getElementById('sleeperManual').addEventListener('click',useManual);
   }
 
+  function finishRestore(restored,reason=''){
+    window.__FFM_SLEEPER_RESTORE_PENDING__=false;
+    window.dispatchEvent(new CustomEvent('ffm:sleeper-restore-complete',{detail:{restored:Boolean(restored),reason}}));
+  }
+
   async function restore(){
     const username=safeGet(USERNAME_KEY);
-    if(!username)return;
-    try{await connectSleeper({username,autoStart:true})}catch(error){setStatus(`Saved Sleeper connection needs attention · ${String(error?.message||error)}`,'warn')}
+    const savedLeague=safeGet(LEAGUE_KEY);
+    if(!username){finishRestore(false,'no-saved-user');return false}
+    window.__FFM_SLEEPER_RESTORE_PENDING__=Boolean(savedLeague);
+    let restored=false;
+    try{
+      await connectSleeper({username,autoStart:true});
+      restored=Boolean(window.ffmCanonicalDraftState||window.ffmLeagueSnapshot);
+      return restored;
+    }catch(error){
+      setStatus(`Saved Sleeper connection needs attention · ${String(error?.message||error)}`,'warn');
+      return false;
+    }finally{
+      finishRestore(restored,restored?'restored':'not-restored');
+    }
   }
 
   function init(){
