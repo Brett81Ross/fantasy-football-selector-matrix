@@ -1,0 +1,26 @@
+name: Fantasy v1.6.13 Branded Splash QA
+
+on:
+  push:
+    branches:
+      - hotfix/fantasy-branded-splash-v1.6.13
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Branded splash regression
+        run: node --test tests/startup-restore-v1610.test.js
+      - name: Verify deployment remains locked
+        run: node -e "const v=require('./vercel.json');if(v.git?.deploymentEnabled!==false)process.exit(1)"
