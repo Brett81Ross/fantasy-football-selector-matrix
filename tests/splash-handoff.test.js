@@ -5,14 +5,14 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('Android launch hands off into the branded CactusByte splash exactly once',()=>{
+test('served app shell does not load the branded web splash',()=>{
   const app=read('api/app.js');
   const index=read('index.html');
-  assert.equal(app.includes('/splash.js?v=${VERSION}'),true);
+  assert.equal(app.includes('/splash.js?v=${VERSION}'),false);
   assert.equal(index.includes('/splash.js'),false);
 });
 
-test('Android system launch frame blends into the branded splash without changing standalone mode',()=>{
+test('Android system launch frame keeps the dark standalone handoff',()=>{
   const manifest=JSON.parse(read('manifest.json'));
   assert.equal(manifest.display,'standalone');
   assert.equal(manifest.background_color,'#040a06');
