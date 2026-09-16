@@ -15,7 +15,6 @@ module.exports=async function handler(req,res){
     const swRetirement=`<script>(function(){try{const retire=async()=>{if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();await Promise.allSettled(regs.map(r=>r.unregister()));}if('caches' in window){const keys=await caches.keys();await Promise.allSettled(keys.filter(k=>k.startsWith('ff-matrix-')||k.startsWith('fantasy-football-')).map(k=>caches.delete(k)));}};retire().catch(()=>{});}catch(_){}})();</script>`;
     const startupState=`<script>(function(){try{const hasUsername=Boolean(localStorage.getItem('ffm-sleeper-username'));const hasLeague=Boolean(localStorage.getItem('ffm-sleeper-league'));window.__FFM_SLEEPER_RESTORE_PENDING__=hasUsername&&hasLeague;}catch(_){window.__FFM_SLEEPER_RESTORE_PENDING__=false;}})();</script>`;
     html=html.replace('<head>',`<head>\n${runtimeVersion}\n${swRetirement}\n${startupState}`);
-    if(!html.includes('/splash.js'))html=html.replace('<body>',`<body>\n<script src="/splash.js?v=${VERSION}"></script>`);
 
     const canonicalUrl='https://fantasy-football-selector-matrix.vercel.app/';
     const shareImage=canonicalUrl+'icons/ffm-logo-512.png';
