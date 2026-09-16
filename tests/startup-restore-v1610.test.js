@@ -6,10 +6,10 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('Android standalone launch hands off into the branded splash without duplicate static loading',()=>{
+test('Android standalone launch does not add a second branded web splash',()=>{
   const app=read('api/app.js');
   const index=read('index.html');
-  assert.equal(app.includes('/splash.js?v=${VERSION}'),true,'api/app.js must inject the branded splash once');
+  assert.equal(app.includes('/splash.js?v=${VERSION}'),false,'api/app.js must not inject the branded web splash');
   assert.equal(index.includes('/splash.js'),false,'static shell must not separately load splash.js');
 });
 
