@@ -6,11 +6,19 @@ const path=require('node:path');
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('Android standalone launch does not add a second branded web splash',()=>{
+test('Android standalone launch hands off into the fully branded splash exactly once',()=>{
   const app=read('api/app.js');
   const index=read('index.html');
-  assert.equal(app.includes('/splash.js?v=${VERSION}'),false,'api/app.js must not inject the branded web splash');
+  const splash=read('splash.js');
+  const manifest=JSON.parse(read('manifest.json'));
+
+  assert.equal(app.includes('/splash.js?v=${VERSION}'),true,'api/app.js must inject the fully branded splash once');
   assert.equal(index.includes('/splash.js'),false,'static shell must not separately load splash.js');
+  assert.match(splash,/cactus-byte-studios\.svg/,'branded splash must include the CactusByte Studios lockup');
+  assert.match(splash,/ffm-user-logo\.svg/,'branded splash must include the Fantasy Football Matrix shield');
+  assert.match(splash,/FANTASY FOOTBALL <span>MATRIX™<\/span>/,'branded splash must include the full app name');
+  assert.equal(manifest.background_color,'#040a06','Android platform splash must blend into branded splash background');
+  assert.equal(manifest.theme_color,'#040a06','Android theme must match branded splash background');
 });
 
 test('saved Sleeper league blocks generic NFL paint until restore finishes',()=>{
