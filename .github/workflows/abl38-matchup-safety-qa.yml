@@ -1,0 +1,22 @@
+name: ABL-38 Matchup Safety QA
+
+on:
+  push:
+    branches:
+      - 'abl/fantasy-matchup-safety-2026-09-17'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run full regression suite
+        run: node --test tests/*.test.js
+      - name: Verify version remains v1.6.12
+        run: test "$(cat VERSION)" = "1.6.12"
+      - name: Verify Vercel deployment lock remains closed
+        run: node -e "const c=require('./vercel.json'); if(c.git?.deploymentEnabled!==false) process.exit(1)"
