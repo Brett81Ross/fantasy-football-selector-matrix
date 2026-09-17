@@ -56,6 +56,21 @@ function tradeFixture(){
   return {snap,tradeValues};
 }
 
+function noWeeklyEdgeWaiverFixture(){
+  const rosters=[
+    {rosterId:'1',playerIds:['Q1','R1','R2','W1','W2','W3','T1','B1']},
+    {rosterId:'2',playerIds:['Q2','R3','R4','W4','W5','T2']}
+  ];
+  const waiverValues={...values,FUTURE:{position:'RB',value:100,projection:1}};
+  const snap=normalizeLeagueSnapshot({
+    league:{leagueId:'WAIVER',platform:'sleeper',season:2026,teams:2,scoring:{rec:1},rosterSlots:slots},
+    week:7,myRosterId:'1',opponentRosterId:'2',rosters,
+    playerPool:[...rosters.flatMap(r=>r.playerIds),'FUTURE'].map(id=>({id})),playerStatuses:{},
+    freshness:{status:'fresh',asOf:'2026-09-17T10:00:00.000Z'}
+  });
+  return {snap,waiverValues};
+}
+
 test('missing opponent identity explicitly degrades the matchup plan and suppresses matchup recommendations',()=>{
   const plan=buildWeeklyAttackPlan(snapshot({opponentRosterId:''}),'1',values);
   assert.equal(plan.matchupReady,false);
@@ -69,4 +84,12 @@ test('weekly matchup actions exclude season-long trade advice while preserving T
   const plan=buildWeeklyAttackPlan(snap,'1',tradeValues);
   assert.ok(plan.tradeOpportunity,'fixture should expose a valid trade opportunity');
   assert.equal(plan.actions.some(action=>action.type==='TRADE'),false);
+});
+
+test('weekly matchup actions exclude waivers that do not improve this weeks optimized lineup',()=>{
+  const {snap,waiverValues}=noWeeklyEdgeWaiverFixture();
+  const plan=buildWeeklyAttackPlan(snap,'1',waiverValues);
+  assert.ok(plan.waiverMove,'fixture should still expose a season-long Waiver Assassin move');
+  assert.equal(plan.waiverMove.addPlayerId,'FUTURE');
+  assert.equal(plan.actions.some(action=>action.type==='WAIVER'),false);
 });
