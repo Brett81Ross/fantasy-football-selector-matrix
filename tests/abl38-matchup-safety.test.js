@@ -2,6 +2,8 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {normalizeLeagueSnapshot}=require('../season-core/contracts');
 const {buildWeeklyAttackPlan}=require('../season-core/weekly-attack-plan');
+const {rankWaiverMoves}=require('../season-core/waiver-assassin');
+const {optimizeLineup}=require('../season-core/lineup-optimizer');
 
 const slots=[
   {id:'QB',type:'QB',count:1,eligiblePositions:['QB'],isBench:false,isReserve:false},
@@ -71,6 +73,26 @@ function noWeeklyEdgeWaiverFixture(){
   return {snap,waiverValues};
 }
 
+function stashSafetyFixture(){
+  const mine=['QLOW','R1','R2','W1','W2','W3','T1','BENCH'];
+  const other=['Q2','R3','R4','W4','W5','T2'];
+  const stashValues={
+    ...values,
+    QLOW:{position:'QB',value:1,projection:1},
+    BENCH:{position:'WR',value:30,projection:5},
+    PUPSTAR:{position:'RB',value:95,projection:0}
+  };
+  const snap=normalizeLeagueSnapshot({
+    league:{leagueId:'STASH',platform:'sleeper',season:2026,teams:2,scoring:{rec:1},rosterSlots:slots},
+    week:7,myRosterId:'1',opponentRosterId:'2',
+    rosters:[{rosterId:'1',playerIds:mine},{rosterId:'2',playerIds:other}],
+    playerPool:[...mine,...other,'PUPSTAR'].map(id=>({id})),
+    playerStatuses:{PUPSTAR:{status:'PUP'}},
+    freshness:{status:'fresh',asOf:'2026-09-17T10:00:00.000Z'}
+  });
+  return {snap,stashValues};
+}
+
 test('missing opponent identity explicitly degrades the matchup plan and suppresses matchup recommendations',()=>{
   const plan=buildWeeklyAttackPlan(snapshot({opponentRosterId:''}),'1',values);
   assert.equal(plan.matchupReady,false);
@@ -92,4 +114,14 @@ test('weekly matchup actions exclude waivers that do not improve this weeks opti
   assert.ok(plan.waiverMove,'fixture should still expose a season-long Waiver Assassin move');
   assert.equal(plan.waiverMove.addPlayerId,'FUTURE');
   assert.equal(plan.actions.some(action=>action.type==='WAIVER'),false);
+});
+
+test('STASH waiver moves never drop a player from the current optimized starting lineup',()=>{
+  const {snap,stashValues}=stashSafetyFixture();
+  const lineup=optimizeLineup(snap,'1',stashValues);
+  const starterIds=new Set(lineup.starters.map(starter=>starter.playerId));
+  const move=rankWaiverMoves(snap,'1',stashValues,{lineup}).find(item=>item.addPlayerId==='PUPSTAR');
+  assert.ok(move,'fixture should produce a PUP stash candidate');
+  assert.equal(move.classification,'STASH');
+  assert.equal(starterIds.has(move.dropPlayerId),false);
 });
