@@ -43,3 +43,9 @@ test('missing opponent identity explicitly degrades the matchup plan and suppres
   assert.ok(plan.actions.some(action=>action.type==='OPPONENT_DATA_MISSING'&&action.blocking===true));
   assert.equal(plan.actions.some(action=>['WAIVER','TRADE','OPPONENT'].includes(action.type)),false);
 });
+
+test('weekly matchup actions exclude season-long trade advice while preserving Trade Hunter output for its own screen',()=>{
+  const plan=buildWeeklyAttackPlan(snapshot(),'1',values);
+  assert.ok(plan.tradeOpportunity,'fixture should expose a valid trade opportunity');
+  assert.equal(plan.actions.some(action=>action.type==='TRADE'),false);
+});
