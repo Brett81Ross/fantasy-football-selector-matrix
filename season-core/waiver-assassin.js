@@ -63,11 +63,19 @@
 
   function chooseDrop(snapshot, rosterId, add, rosterPlayers, lineup, playerValues, cls) {
     let best=null;
+    const starterIds=new Set((lineup?.starters||[]).map(starter=>text(starter?.playerId||starter?.id)).filter(Boolean));
     for (const drop of rosterPlayers) {
       if (drop.id===add.id || !drop.known || !drop.position) continue;
       if (cls==='STASH') {
+        if (starterIds.has(drop.id)) continue;
+        const simulated=snapshotAfterSwap(snapshot,rosterId,drop.id,add.id);
+        let next;
+        try { next=lineupOptimizer.optimizeLineup(simulated,rosterId,playerValues); }
+        catch (_) { continue; }
+        if (next.filledStarterSlots < lineup.filledStarterSlots) continue;
         const score=-(drop.value+drop.projection*2);
-        if (!best || score>best.score) best={drop,score,lineupDelta:0};
+        const lineupDelta=round(next.expectedTotal-lineup.expectedTotal,2);
+        if (!best || score>best.score) best={drop,score,lineupDelta};
         continue;
       }
       const simulated=snapshotAfterSwap(snapshot,rosterId,drop.id,add.id);
