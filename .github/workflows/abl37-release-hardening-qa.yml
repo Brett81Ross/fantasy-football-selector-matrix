@@ -1,0 +1,28 @@
+name: Fantasy ABL-37 Release Hardening QA
+
+on:
+  push:
+    branches:
+      - abl/fantasy-release-hardening-2026-09-17
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Full regression suite
+        run: node --test
+      - name: Verify release version remains unchanged
+        run: node -e "const fs=require('fs');if(fs.readFileSync('VERSION','utf8').trim()!=='1.6.12')process.exit(1)"
+      - name: Verify production deployment remains locked
+        run: node -e "const v=require('./vercel.json');if(v.git?.deploymentEnabled!==false)process.exit(1)"
