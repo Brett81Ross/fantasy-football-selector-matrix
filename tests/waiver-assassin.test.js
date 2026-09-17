@@ -63,13 +63,13 @@ test('Maximum Edge allows aggressive bench churn when the replacement materially
 
 test('PUP and IR waiver targets are treated as stashes rather than healthy immediate upgrades', () => {
   const snap=makeSnapshot({
-    mine:['QB1','RB1','RB2','WR1','WR2','TE1','B1'],
+    mine:['QB1','RB1','RB2','WR1','WR2','TE1','B1','B2'],
     free:['HEALTHY','PUPSTAR'],
     statuses:{HEALTHY:{raw:'Active'},PUPSTAR:{raw:'PUP'}}
   });
   const moves=rankWaiverMoves(snap,'1',{
     QB1:{position:'QB',value:75,projection:18},RB1:{position:'RB',value:60,projection:10},RB2:{position:'RB',value:58,projection:9},
-    WR1:{position:'WR',value:80,projection:16},WR2:{position:'WR',value:78,projection:15},TE1:{position:'TE',value:68,projection:11},B1:{position:'WR',value:38,projection:5},
+    WR1:{position:'WR',value:80,projection:16},WR2:{position:'WR',value:78,projection:15},TE1:{position:'TE',value:68,projection:11},B1:{position:'WR',value:38,projection:5},B2:{position:'WR',value:20,projection:2},
     HEALTHY:{position:'RB',value:74,projection:14},PUPSTAR:{position:'RB',value:92,projection:20},OWNED:{position:'QB',value:40,projection:7}
   });
   assert.equal(moves[0].addPlayerId,'HEALTHY');
