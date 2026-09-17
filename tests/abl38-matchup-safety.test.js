@@ -9,7 +9,7 @@ const slots=[
   {id:'WR',type:'WR',count:2,eligiblePositions:['WR'],isBench:false,isReserve:false},
   {id:'TE',type:'TE',count:1,eligiblePositions:['TE'],isBench:false,isReserve:false},
   {id:'FLEX',type:'FLEX',count:1,eligiblePositions:['RB','WR','TE'],isBench:false,isReserve:false},
-  {id:'BN',type:'BN',count:4,eligiblePositions:['QB','RB','WR','TE'],isBench:true,isReserve:false}
+  {id:'BN',type:'BN',count:5,eligiblePositions:['QB','RB','WR','TE'],isBench:true,isReserve:false}
 ];
 
 const values={
@@ -36,6 +36,26 @@ function snapshot({opponentRosterId='2',freshness='fresh'}={}){
   });
 }
 
+function tradeFixture(){
+  const rosters=[
+    {rosterId:'1',ownerId:'ME',playerIds:['Q1','R1','R2','W1','W2','W3','W4','T1']},
+    {rosterId:'2',ownerId:'THEM',playerIds:['Q2','R3','R4','R5','W5','W6','T2']}
+  ];
+  const tradeValues={
+    Q1:{position:'QB',value:75,projection:18},R1:{position:'RB',value:48,projection:9},R2:{position:'RB',value:46,projection:8},
+    W1:{position:'WR',value:92,projection:18},W2:{position:'WR',value:88,projection:17},W3:{position:'WR',value:83,projection:15},W4:{position:'WR',value:78,projection:14},T1:{position:'TE',value:70,projection:11},
+    Q2:{position:'QB',value:74,projection:17},R3:{position:'RB',value:88,projection:17},R4:{position:'RB',value:82,projection:15},R5:{position:'RB',value:76,projection:13},
+    W5:{position:'WR',value:48,projection:8},W6:{position:'WR',value:44,projection:7},T2:{position:'TE',value:69,projection:10}
+  };
+  const snap=normalizeLeagueSnapshot({
+    league:{leagueId:'TRADE',platform:'sleeper',season:2026,teams:2,scoring:{rec:1},rosterSlots:slots},
+    week:7,myRosterId:'1',opponentRosterId:'2',rosters,
+    playerPool:rosters.flatMap(r=>r.playerIds).map(id=>({id})),playerStatuses:{},
+    freshness:{status:'fresh',asOf:'2026-09-17T10:00:00.000Z'}
+  });
+  return {snap,tradeValues};
+}
+
 test('missing opponent identity explicitly degrades the matchup plan and suppresses matchup recommendations',()=>{
   const plan=buildWeeklyAttackPlan(snapshot({opponentRosterId:''}),'1',values);
   assert.equal(plan.matchupReady,false);
@@ -45,7 +65,8 @@ test('missing opponent identity explicitly degrades the matchup plan and suppres
 });
 
 test('weekly matchup actions exclude season-long trade advice while preserving Trade Hunter output for its own screen',()=>{
-  const plan=buildWeeklyAttackPlan(snapshot(),'1',values);
+  const {snap,tradeValues}=tradeFixture();
+  const plan=buildWeeklyAttackPlan(snap,'1',tradeValues);
   assert.ok(plan.tradeOpportunity,'fixture should expose a valid trade opportunity');
   assert.equal(plan.actions.some(action=>action.type==='TRADE'),false);
 });
