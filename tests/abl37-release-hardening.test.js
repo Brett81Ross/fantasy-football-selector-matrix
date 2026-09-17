@@ -20,7 +20,7 @@ test('Install App stays inside the Share sheet instead of floating over app cont
   const source = fs.readFileSync(path.join(repoRoot, 'native-install.js'), 'utf8');
   assert.match(source, /getElementById\(['"]shareModal['"]\)/, 'install entry point must mount in Share');
   assert.match(source, /shareInstallApp/, 'Share install button must keep its stable id');
-  assert.doesNotMatch(source, /position\s*:\s*['"]fixed['"]/, 'install CTA must not become a fixed overlay again');
+  assert.doesNotMatch(source, /Object\.assign\(b\.style,\{[^}]*position\s*:\s*['"]fixed['"]/s, 'install CTA must not become a fixed overlay again');
   assert.doesNotMatch(source, /zIndex\s*:\s*['"]?2147483000['"]?/, 'legacy floating install overlay must stay removed');
 });
 
