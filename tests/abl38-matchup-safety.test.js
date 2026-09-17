@@ -125,3 +125,22 @@ test('STASH waiver moves never drop a player from the current optimized starting
   assert.equal(move.classification,'STASH');
   assert.equal(starterIds.has(move.dropPlayerId),false);
 });
+
+test('stale matchup data uses shared confidence degradation without becoming unavailable',()=>{
+  const fresh=buildWeeklyAttackPlan(snapshot({freshness:'fresh'}),'1',values);
+  const stale=buildWeeklyAttackPlan(snapshot({freshness:'stale'}),'1',values);
+  assert.ok(stale.confidence>0);
+  assert.ok(stale.confidence<fresh.confidence);
+  assert.notEqual(stale.confidenceLabel,'UNAVAILABLE');
+  assert.equal(stale.confidenceAvailable,true);
+  assert.ok(stale.confidenceReasons.some(reason=>/stale/i.test(reason)));
+});
+
+test('disconnected required matchup data makes weekly-plan confidence unavailable instead of flooring above zero',()=>{
+  const plan=buildWeeklyAttackPlan(snapshot({freshness:'disconnected'}),'1',values);
+  assert.equal(plan.confidence,0);
+  assert.equal(plan.confidenceLabel,'UNAVAILABLE');
+  assert.equal(plan.confidenceAvailable,false);
+  assert.ok(plan.confidenceReasons.some(reason=>/offline|disconnected/i.test(reason)));
+  assert.ok(plan.actions.every(action=>action.type==='OPPONENT_DATA_MISSING'||action.confidence===0));
+});
