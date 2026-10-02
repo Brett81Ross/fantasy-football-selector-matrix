@@ -22,7 +22,7 @@ function snap(){
   week:5,myRosterId:'1',opponentRosterId:'2',
   rosters:[{rosterId:'1',playerIds:['Q1','WQ','WB']},{rosterId:'2',playerIds:['Q2','W2']}],
   playerPool:['Q1','WQ','WB','Q2','W2','FA'].map(id=>({id})),
-  playerStatuses:{WQ:{status:'Questionable'}},
+  playerStatuses:{WQ:{status:'Questionable',injuryBodyPart:'hamstring',injuryStartDate:'2026-09-28',practiceParticipation:'Limited',practiceDescription:'Limited Practice',newsUpdated:1790989200000,source:'sleeper'}},
   freshness:{status:'fresh',asOf:'2026-10-02T18:00:00.000Z'}
  });
 }
@@ -37,4 +37,11 @@ test('questionable starter status action names the best legal bench fallback',()
  assert.equal(action.waiverAddPlayerId,null);
  assert.match(action.reason,/bench him and start Bench Backup/i);
  assert.doesNotMatch(action.reason,/keep the best legal fallback ready/i);
+ const alert=plan.urgentStatusAlerts.find(item=>item.playerId==='WQ');
+ assert.equal(alert.injuryBodyPart,'hamstring');
+ assert.equal(alert.injuryStartDate,'2026-09-28');
+ assert.equal(alert.practiceParticipation,'Limited');
+ assert.equal(alert.practiceDescription,'Limited Practice');
+ assert.equal(alert.source,'sleeper');
+ assert.equal(alert.asOf,'2026-10-02T18:00:00.000Z');
 });
