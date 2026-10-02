@@ -477,6 +477,13 @@
           if (!playerId || !poolIds.has(playerId)) continue;
           playerStatuses[playerId] = {
             raw: rawPlayerStatus(entry),
+            injuryStatus: text(entry?.injury_status) || null,
+            injuryBodyPart: text(entry?.injury_body_part) || null,
+            injuryStartDate: text(entry?.injury_start_date) || null,
+            injuryNotes: text(entry?.injury_notes) || null,
+            practiceParticipation: text(entry?.practice_participation) || null,
+            practiceDescription: text(entry?.practice_description) || null,
+            newsUpdated: entry?.news_updated ?? null,
             providerPlayerId: text(providerPlayerId),
             source: 'sleeper'
           };
