@@ -31,4 +31,4 @@ jobs:
           node --test \
             tests/weekly-attack-injury-actions.test.js \
             tests/dropped-player-opportunities.test.js \
-            tests/weekly-attack-actionability.test.js
+            tests/weekly-attack-action-contract.test.js
