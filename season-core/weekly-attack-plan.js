@@ -5,10 +5,11 @@
   const tradeHunter=typeof module==='object'&&module.exports?require('./trade-hunter'):root.FFMTradeHunter;
   const opponentExploiter=typeof module==='object'&&module.exports?require('./opponent-exploiter'):root.FFMOpponentExploiter;
   const playerStatus=typeof module==='object'&&module.exports?require('./player-status'):root.FFMPlayerStatus;
-  const api=factory(rosterDoctor,lineupOptimizer,waiverAssassin,tradeHunter,opponentExploiter,playerStatus);
+  const droppedPlayerOpportunities=typeof module==='object'&&module.exports?require('./dropped-player-opportunities'):root.FFMDroppedPlayerOpportunities;
+  const api=factory(rosterDoctor,lineupOptimizer,waiverAssassin,tradeHunter,opponentExploiter,playerStatus,droppedPlayerOpportunities);
   if(typeof module==='object'&&module.exports)module.exports=api;
   if(root)root.FFMWeeklyAttackPlan=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(rosterDoctor,lineupOptimizer,waiverAssassin,tradeHunter,opponentExploiter,playerStatus){
+})(typeof globalThis!=='undefined'?globalThis:this,function(rosterDoctor,lineupOptimizer,waiverAssassin,tradeHunter,opponentExploiter,playerStatus,droppedPlayerOpportunities){
 'use strict';
 const text=v=>v==null?'':String(v).trim();
 const num=(v,f=0)=>Number.isFinite(Number(v))?Number(v):f;
@@ -20,6 +21,7 @@ function buildWeeklyAttackPlan(snapshot,rosterId,playerValues){
   const lineup=lineupOptimizer.optimizeLineup(snapshot,id,playerValues);
   const waivers=waiverAssassin.rankWaiverMoves(snapshot,id,playerValues,{rosterReport,lineup});
   const trades=tradeHunter.findTradeOpportunities(snapshot,id,playerValues);
+  const droppedPlayers=droppedPlayerOpportunities?.evaluateDroppedPlayers?droppedPlayerOpportunities.evaluateDroppedPlayers(snapshot,id,playerValues,{rosterReport,lineup}):[];
   let opponent=null;try{opponent=opponentExploiter.analyzeOpponent(snapshot,id,playerValues);}catch(_){opponent=null;}
   const alerts=urgentStatuses(snapshot,roster);const weakness=rosterReport.weaknesses?.[0]||null;const waiverMove=waivers[0]||null;const tradeOpportunity=trades[0]||null;
   const freshness=text(snapshot?.freshness?.status).toLowerCase()||'unknown';const stale=freshness!=='fresh';const confidence=round(Math.max(25,Math.min(100,95-(stale?30:0)-alerts.filter(a=>a.stale).length*4)));const baseRisk=stale?0.4:0.12;
@@ -27,13 +29,14 @@ function buildWeeklyAttackPlan(snapshot,rosterId,playerValues){
   const lineupChanges=lineup.decisions.filter(d=>d.action==='START'&&d.expectedEdge>0).sort((a,b)=>b.expectedEdge-a.expectedEdge);
   if(lineupChanges[0])actions.push(Object.freeze({type:'LINEUP',priority:100,confidence:Math.min(confidence,num(lineupChanges[0].confidence,confidence)),risk:round(Math.max(baseRisk,num(lineupChanges[0].risk)),2),reason:lineupChanges[0].reason,playerId:lineupChanges[0].playerId}));
   if(waiverMove)actions.push(Object.freeze({type:'WAIVER',priority:round(90+Math.min(10,waiverMove.priority)),confidence:Math.min(confidence,num(waiverMove.confidence,confidence)),risk:round(Math.max(baseRisk,num(waiverMove.risk)),2),reason:waiverMove.reason,addPlayerId:waiverMove.addPlayerId,dropPlayerId:waiverMove.dropPlayerId}));
+  for(const opportunity of droppedPlayers.filter(item=>item.worthConsidering).slice(0,2))actions.push(Object.freeze({type:'NEWLY_DROPPED',priority:96,confidence:Math.min(confidence,num(opportunity.confidence,confidence)),risk:round(Math.max(baseRisk,num(opportunity.risk)),2),recommendedAction:'ADD_DROP',playerId:opportunity.playerId,addPlayerId:opportunity.addPlayerId,dropPlayerId:opportunity.dropPlayerId,expectedImprovement:opportunity.expectedImprovement,weeklyLineupDelta:opportunity.weeklyLineupDelta,reason:`${opportunity.playerId} was newly dropped and is still available. ${opportunity.reason}`}));
   const opponentAction=opponent?.actions?.[0]||null;
   if(opponentAction&&opponentAction.type!=='ATTACK_WEAK_POSITION'&&opponentAction.playerId&&opponentAction.recommendedAction)actions.push(Object.freeze({type:'OPPONENT',priority:85,confidence:Math.min(confidence,num(opponentAction.confidence,confidence)),risk:round(Math.max(baseRisk,num(opponentAction.risk)),2),reason:opponentAction.reason,position:opponentAction.position,playerId:opponentAction.playerId,recommendedAction:opponentAction.recommendedAction}));
   if(tradeOpportunity)actions.push(Object.freeze({type:'TRADE',priority:75,confidence:Math.min(confidence,num(tradeOpportunity.confidence,confidence)),risk:round(Math.max(baseRisk,num(tradeOpportunity.risk)),2),reason:tradeOpportunity.reason,givePlayerIds:tradeOpportunity.givePlayerIds,getPlayerIds:tradeOpportunity.getPlayerIds}));
   for(const alert of alerts.slice(0,3)){const contingency=(lineup.contingencies||[]).find(item=>text(item.starterPlayerId)===alert.playerId);const backup=contingency?(lineup.bench||[]).find(item=>text(item.playerId)===text(contingency.backupPlayerId)):null;const waiverFallback=waivers.find(move=>move.targetPosition&&backup?.position&&text(move.targetPosition)===text(backup.position))||waiverMove;const hasBenchFallback=!!backup;const reason=hasBenchFallback?`${alert.playerId} is ${alert.label}. If ruled inactive or materially downgraded, bench him and start ${backup.name} (${round(backup.expectedPoints,1)} expected points).`:`${alert.playerId} is ${alert.label}. No legal bench fallback is available; ${waiverFallback?`consider adding ${waiverFallback.addPlayerId} and dropping ${waiverFallback.dropPlayerId}.`:'review available free agents before lineup lock.'}`;actions.push(Object.freeze({type:'STATUS',priority:alert.status==='OUT'||alert.status==='IR'||alert.status==='PUP'?98:88,confidence:Math.min(confidence,alert.confidence),risk:round(Math.max(baseRisk,alert.risk),2),reason,playerId:alert.playerId,status:alert.status,recommendedAction:hasBenchFallback?'PREPARE_BENCH_FALLBACK':waiverFallback?'CONSIDER_WAIVER_REPLACEMENT':'REVIEW_FREE_AGENTS',backupPlayerId:backup?.playerId||null,backupName:backup?.name||null,backupExpectedPoints:backup?round(backup.expectedPoints,1):null,waiverAddPlayerId:hasBenchFallback?null:waiverFallback?.addPlayerId||null,waiverDropPlayerId:hasBenchFallback?null:waiverFallback?.dropPlayerId||null}));}
   actions.sort((a,b)=>b.priority-a.priority||b.confidence-a.confidence);
   if(!actions.length)actions.push(Object.freeze({type:'NO_MOVE',priority:0,confidence,risk:round(baseRisk,2),recommendedAction:'NO_MOVE',reason:'No specific roster move is supported by the current league, lineup, waiver, trade, opponent, and player-status evidence.'}));
-  return Object.freeze({week:num(snapshot?.week),rosterId:id,rosterGrade:rosterReport.overallGrade,biggestWeakness:weakness,lineup,waiverMove,tradeOpportunity,opponent,urgentStatusAlerts:Object.freeze(alerts),actions:Object.freeze(actions),freshness:Object.freeze({...snapshot.freshness}),confidence,risk:round(Math.min(1,baseRisk+(alerts.length*0.04)),2)});
+  return Object.freeze({week:num(snapshot?.week),rosterId:id,rosterGrade:rosterReport.overallGrade,biggestWeakness:weakness,lineup,waiverMove,tradeOpportunity,droppedPlayerOpportunities:Object.freeze(droppedPlayers),opponent,urgentStatusAlerts:Object.freeze(alerts),actions:Object.freeze(actions),freshness:Object.freeze({...snapshot.freshness}),confidence,risk:round(Math.min(1,baseRisk+(alerts.length*0.04)),2)});
 }
 return{buildWeeklyAttackPlan};
 });
