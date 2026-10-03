@@ -120,6 +120,7 @@
         aggressiveness:'MAXIMUM_EDGE',
         priority,
         expectedImprovement,
+        weeklyLineupDelta:round(choice.lineupDelta,2),
         risk:round(add.risk),
         confidence,
         reason:cls==='STASH'
