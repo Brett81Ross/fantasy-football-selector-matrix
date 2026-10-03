@@ -63,9 +63,11 @@
 
   function chooseDrop(snapshot, rosterId, add, rosterPlayers, lineup, playerValues, cls) {
     let best=null;
+    const starterIds=new Set((lineup?.starters||[]).map(starter=>text(starter?.playerId||starter?.id)).filter(Boolean));
     for (const drop of rosterPlayers) {
       if (drop.id===add.id || !drop.known || !drop.position) continue;
       if (cls==='STASH') {
+        if (starterIds.has(drop.id)) continue;
         const score=-(drop.value+drop.projection*2);
         if (!best || score>best.score) best={drop,score,lineupDelta:0};
         continue;
