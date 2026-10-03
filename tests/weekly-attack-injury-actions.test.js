@@ -71,3 +71,12 @@ test('Weekly Attack Plan does not promote Trade Hunter output as a weekly action
  const plan=buildWeeklyAttackPlan(snap(),'1',values);
  assert.equal(plan.actions.some(item=>item.type==='TRADE'),false);
 });
+
+
+test('injury waiver fallback must be legal for the injured starter slot and positively improve this week',()=>{
+ const source=require('node:fs').readFileSync(require('node:path').join(__dirname,'../season-core/weekly-attack-plan.js'),'utf8');
+ assert.match(source,/eligiblePositions\.has\(text\(move\.targetPosition\)\.toUpperCase\(\)\)/);
+ assert.match(source,/num\(move\.expectedImprovement\)>0/);
+ assert.match(source,/num\(move\.weeklyLineupDelta\)>0/);
+ assert.doesNotMatch(source,/\|\|waiverMove/);
+});
