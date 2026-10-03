@@ -16,13 +16,13 @@ const values={
  W2:{name:'Opponent WR',position:'WR',value:75,projection:13},
  FA:{name:'Free Agent WR',position:'WR',value:70,projection:12}
 };
-function snap(){
+function snap(statusOverrides={}){
  return normalizeLeagueSnapshot({
   league:{leagueId:'L',platform:'sleeper',season:2026,teams:2,scoring:{rec:1},rosterSlots:slots},
   week:5,myRosterId:'1',opponentRosterId:'2',
   rosters:[{rosterId:'1',playerIds:['Q1','WQ','WB'],starterPlayerIds:['Q1','WQ'],reservePlayerIds:['WB']},{rosterId:'2',playerIds:['Q2','W2'],starterPlayerIds:['Q2','W2']}],
   playerPool:['Q1','WQ','WB','Q2','W2','FA'].map(id=>({id})),
-  playerStatuses:{WQ:{status:'Questionable',injuryBodyPart:'hamstring',injuryStartDate:'2026-09-28',practiceParticipation:'Limited',practiceDescription:'Limited Practice',newsUpdated:1790989200000,source:'sleeper'}},
+  playerStatuses:{WQ:{status:'Questionable',injuryBodyPart:'hamstring',injuryStartDate:'2026-09-28',practiceParticipation:'Limited',practiceDescription:'Limited Practice',newsUpdated:1790989200000,source:'sleeper'},...statusOverrides},
   freshness:{status:'fresh',asOf:'2026-10-02T18:00:00.000Z'}
  });
 }
@@ -48,16 +48,14 @@ test('questionable starter status action names the best legal bench fallback',()
 
 
 test('injured bench player remains visible in status data but does not create urgent replacement action',()=>{
- const snapshot=snap();
- snapshot.playerStatuses.WB={status:'Questionable',injuryBodyPart:'ankle',source:'sleeper'};
+ const snapshot=snap({WB:{status:'Questionable',injuryBodyPart:'ankle',source:'sleeper'}});
  const plan=buildWeeklyAttackPlan(snapshot,'1',values);
  assert.ok(plan.urgentStatusAlerts.some(item=>item.playerId==='WB'));
  assert.equal(plan.actions.some(item=>item.type==='STATUS'&&item.playerId==='WB'),false);
 });
 
 test('OUT starter gets explicit replace-with-bench action instead of wait-and-see language',()=>{
- const snapshot=snap();
- snapshot.playerStatuses.WQ={status:'Out',injuryBodyPart:'hamstring',source:'sleeper'};
+ const snapshot=snap({WQ:{status:'Out',injuryBodyPart:'hamstring',source:'sleeper'}});
  const plan=buildWeeklyAttackPlan(snapshot,'1',values);
  const action=plan.actions.find(item=>item.type==='STATUS'&&item.playerId==='WQ');
  assert.ok(action);
