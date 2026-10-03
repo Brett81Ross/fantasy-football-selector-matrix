@@ -413,6 +413,24 @@
           ? await fetchJson(`${API}/league/${encodeURIComponent(id)}/matchups/${week}`, 'Sleeper matchups')
           : [];
         const matchups = Array.isArray(rawMatchups) ? rawMatchups : [];
+        const rawTransactions = week
+          ? await fetchJson(`${API}/league/${encodeURIComponent(id)}/transactions/${week}`, 'Sleeper transactions').catch(() => [])
+          : [];
+        const transactions = (Array.isArray(rawTransactions) ? rawTransactions : []).map(item => {
+          const resolveMap = raw => Object.fromEntries(Object.entries(raw && typeof raw==='object' ? raw : {})
+            .map(([playerId, rosterId]) => [resolveRosterPlayerId(playerId, directory), text(rosterId)])
+            .filter(([playerId]) => playerId));
+          return {
+            transactionId:text(item?.transaction_id),
+            type:text(item?.type),
+            status:text(item?.status),
+            createdAt:nonNegativeNumber(item?.created, null),
+            statusUpdatedAt:nonNegativeNumber(item?.status_updated, null),
+            rosterIds:(Array.isArray(item?.roster_ids) ? item.roster_ids : []).map(text).filter(Boolean),
+            adds:resolveMap(item?.adds),
+            drops:resolveMap(item?.drops)
+          };
+        });
         const matchupByRoster = new Map(matchups.map(item => [text(item?.roster_id), item]));
         const usersById = new Map((Array.isArray(rawUsers) ? rawUsers : [])
           .map(item => [text(item?.user_id), item])
@@ -477,6 +495,13 @@
           if (!playerId || !poolIds.has(playerId)) continue;
           playerStatuses[playerId] = {
             raw: rawPlayerStatus(entry),
+            injuryStatus: text(entry?.injury_status) || null,
+            injuryBodyPart: text(entry?.injury_body_part) || null,
+            injuryStartDate: text(entry?.injury_start_date) || null,
+            injuryNotes: text(entry?.injury_notes) || null,
+            practiceParticipation: text(entry?.practice_participation) || null,
+            practiceDescription: text(entry?.practice_description) || null,
+            newsUpdated: entry?.news_updated ?? null,
             providerPlayerId: text(providerPlayerId),
             source: 'sleeper'
           };
@@ -490,6 +515,7 @@
           rosters,
           playerPool: pool,
           playerStatuses,
+          transactions,
           remainingSchedule,
           scheduleCoverage: {
             expectedWeeks,
