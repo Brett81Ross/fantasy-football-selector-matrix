@@ -38,6 +38,6 @@ test('Weekly Attack Plan integration is wired to actionable dropped-player engin
  const source=fs.readFileSync(path.join(__dirname,'../season-core/weekly-attack-plan.js'),'utf8');
  assert.match(source,/evaluateDroppedPlayers/);
  assert.match(source,/type:'NEWLY_DROPPED'/);
- assert.match(source,/filter\(item=>item\.worthConsidering\)/);
+ assert.match(source,/filter\(item=>item\.worthConsidering&&num\(item\.weeklyLineupDelta\)>0\)/);
  assert.match(source,/recommendedAction:'ADD_DROP'/);
 });
