@@ -20,7 +20,7 @@ function snap(){
  return normalizeLeagueSnapshot({
   league:{leagueId:'L',platform:'sleeper',season:2026,teams:2,scoring:{rec:1},rosterSlots:slots},
   week:5,myRosterId:'1',opponentRosterId:'2',
-  rosters:[{rosterId:'1',playerIds:['Q1','WQ','WB']},{rosterId:'2',playerIds:['Q2','W2']}],
+  rosters:[{rosterId:'1',playerIds:['Q1','WQ','WB'],starterPlayerIds:['Q1','WQ'],reservePlayerIds:['WB']},{rosterId:'2',playerIds:['Q2','W2'],starterPlayerIds:['Q2','W2']}],
   playerPool:['Q1','WQ','WB','Q2','W2','FA'].map(id=>({id})),
   playerStatuses:{WQ:{status:'Questionable',injuryBodyPart:'hamstring',injuryStartDate:'2026-09-28',practiceParticipation:'Limited',practiceDescription:'Limited Practice',newsUpdated:1790989200000,source:'sleeper'}},
   freshness:{status:'fresh',asOf:'2026-10-02T18:00:00.000Z'}
@@ -44,4 +44,30 @@ test('questionable starter status action names the best legal bench fallback',()
  assert.equal(alert.practiceDescription,'Limited Practice');
  assert.equal(alert.source,'sleeper');
  assert.equal(alert.asOf,'2026-10-02T18:00:00.000Z');
+});
+
+
+test('injured bench player remains visible in status data but does not create urgent replacement action',()=>{
+ const snapshot=snap();
+ snapshot.playerStatuses.WB={status:'Questionable',injuryBodyPart:'ankle',source:'sleeper'};
+ const plan=buildWeeklyAttackPlan(snapshot,'1',values);
+ assert.ok(plan.urgentStatusAlerts.some(item=>item.playerId==='WB'));
+ assert.equal(plan.actions.some(item=>item.type==='STATUS'&&item.playerId==='WB'),false);
+});
+
+test('OUT starter gets explicit replace-with-bench action instead of wait-and-see language',()=>{
+ const snapshot=snap();
+ snapshot.playerStatuses.WQ={status:'Out',injuryBodyPart:'hamstring',source:'sleeper'};
+ const plan=buildWeeklyAttackPlan(snapshot,'1',values);
+ const action=plan.actions.find(item=>item.type==='STATUS'&&item.playerId==='WQ');
+ assert.ok(action);
+ assert.equal(action.recommendedAction,'REPLACE_WITH_BENCH');
+ assert.equal(action.backupPlayerId,'WB');
+ assert.match(action.reason,/Replace him with Bench Backup/i);
+ assert.doesNotMatch(action.reason,/If ruled inactive/i);
+});
+
+test('Weekly Attack Plan does not promote Trade Hunter output as a weekly action',()=>{
+ const plan=buildWeeklyAttackPlan(snap(),'1',values);
+ assert.equal(plan.actions.some(item=>item.type==='TRADE'),false);
 });
