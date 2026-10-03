@@ -32,4 +32,5 @@ jobs:
             tests/weekly-attack-injury-actions.test.js \
             tests/dropped-player-opportunities.test.js \
             tests/weekly-attack-action-contract.test.js \
-            tests/abl38-matchup-safety.test.js
+            tests/abl38-matchup-safety.test.js \
+            tests/team-command-action-feed.test.js
