@@ -30,3 +30,14 @@ test('dropped player with no supported positive move is explicitly NO_MOVE',()=>
  require('../season-core/waiver-assassin').rankWaiverMoves=original;
  delete require.cache[require.resolve('../season-core/dropped-player-opportunities')];
 });
+
+
+test('Weekly Attack Plan integration is wired to actionable dropped-player engine',()=>{
+ const fs=require('node:fs');
+ const path=require('node:path');
+ const source=fs.readFileSync(path.join(__dirname,'../season-core/weekly-attack-plan.js'),'utf8');
+ assert.match(source,/evaluateDroppedPlayers/);
+ assert.match(source,/type:'NEWLY_DROPPED'/);
+ assert.match(source,/filter\(item=>item\.worthConsidering\)/);
+ assert.match(source,/recommendedAction:'ADD_DROP'/);
+});
