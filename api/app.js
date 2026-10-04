@@ -8,7 +8,7 @@ module.exports=async function handler(req,res){
     if(!source.ok)throw new Error(`index.html request failed (${source.status})`);
     let html=await source.text();
     html=html.replaceAll('Fantasy Football Selector Matrix™','Fantasy Football Matrix™').replaceAll('Fantasy Football Selector Matrix','Fantasy Football Matrix');
-    html=html.replace(/v1\.1\.0/g,`v${VERSION}`);
+    html=html.replace(/v\d+\.\d+\.\d+/g,`v${VERSION}`);
     html=html.replace(/if\('serviceWorker' in navigator\)navigator\.serviceWorker\.register\('\/sw\.js'\)\.catch\(\(\)=>\{\}\);?/g,'');
 
     const runtimeVersion=`<script>window.__FFM_VERSION__=${JSON.stringify(VERSION)};</script>`;
