@@ -114,6 +114,20 @@
     return { expectedWeeks, loadedWeeks, complete };
   }
 
+  function normalizeTransactions(rawTransactions) {
+    return (Array.isArray(rawTransactions) ? rawTransactions : []).map(raw => ({
+      transactionId:text(raw?.transactionId),
+      type:text(raw?.type).toLowerCase() || 'unknown',
+      status:text(raw?.status).toLowerCase() || 'unknown',
+      createdAt:nonNegativeNumber(raw?.createdAt, null),
+      statusUpdatedAt:nonNegativeNumber(raw?.statusUpdatedAt, null),
+      rosterIds:uniqueIds(raw?.rosterIds),
+      adds:clone(raw?.adds && typeof raw.adds==='object' ? raw.adds : {}),
+      drops:clone(raw?.drops && typeof raw.drops==='object' ? raw.drops : {})
+    })).filter(item=>item.transactionId || Object.keys(item.adds).length || Object.keys(item.drops).length)
+      .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  }
+
   function normalizeLeagueSnapshot(input = {}) {
     if (!input.league || typeof input.league !== 'object') throw new Error('LeagueSnapshot requires league settings');
     const league = clone(input.league);
@@ -158,6 +172,7 @@
       ownedPlayerIds,
       freeAgentPlayerIds,
       playerStatuses,
+      transactions:normalizeTransactions(input.transactions),
       remainingSchedule: normalizeRemainingSchedule(input.remainingSchedule, rosterIds),
       scheduleCoverage: normalizeScheduleCoverage(input.scheduleCoverage),
       freshness: {

@@ -1,0 +1,37 @@
+name: Fantasy Decision Engine QA
+
+on:
+  pull_request:
+    paths:
+      - 'season-core/**'
+      - 'draft-core/sleeper-provider.js'
+      - 'season-intelligence.js'
+      - 'api/app.js'
+      - 'tests/**'
+      - '.github/workflows/fantasy-decision-engine-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  decision-engine:
+    name: Decision engine regression gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run focused decision tests
+        run: |
+          node --test \
+            tests/weekly-attack-injury-actions.test.js \
+            tests/dropped-player-opportunities.test.js \
+            tests/weekly-attack-action-contract.test.js \
+            tests/abl38-matchup-safety.test.js \
+            tests/team-command-action-feed.test.js \
+            tests/injury-command-center-wiring.test.js
