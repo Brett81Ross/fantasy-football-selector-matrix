@@ -45,6 +45,19 @@ test('live refresh publishes team kickoff context for the Command Center',()=>{
 test('ABL-30 wiring leaves shared version authority and deployment lock intact',()=>{
  const app=read('api/app.js');
  assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
- assert.equal(read('VERSION').trim(),'1.7.1');
+ assert.equal(read('VERSION').trim(),'1.7.2');
  assert.match(read('vercel.json'),/"deploymentEnabled"\s*:\s*false/);
+});
+
+
+test('post-draft runtime cannot render draft-only Decision Matrix and branding uses shared version',()=>{
+ const fs=require('node:fs');const path=require('node:path');
+ const dm=fs.readFileSync(path.join(__dirname,'../decision-matrix.js'),'utf8');
+ const brand=fs.readFileSync(path.join(__dirname,'../brand-integration.js'),'utf8');
+ assert.match(dm,/ffmCanonicalDraftState\?\.status==='completed'/);
+ assert.match(dm,/host\.replaceChildren\(\)/);
+ assert.match(dm,/window\.__FFM_VERSION__/);
+ assert.match(brand,/window\.__FFM_VERSION__/);
+ assert.doesNotMatch(brand,/const VERSION\s*=\s*['"]\d+\.\d+\.\d+['"]/);
+ assert.doesNotMatch(dm,/const VERSION\s*=\s*['"]\d+\.\d+\.\d+['"]/);
 });
