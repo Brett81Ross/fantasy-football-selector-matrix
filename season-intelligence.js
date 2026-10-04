@@ -36,7 +36,7 @@
   }
 
   function getPlayerName(id,values){return values?.[id]?.name||id||'—'}
-  function activeTab(){return document.querySelector('.season-tab.active')?.dataset.seasonTab||'Weekly Attack Plan'}
+  function activeTab(){return document.querySelector('.season-tab.active')?.dataset.seasonTab||(window.ffmCanonicalDraftState?.status==='completed'?'Command Center':'Weekly Attack Plan')}
   function optionList(ids,values,placeholder='Choose player…'){
     const unique=[...new Set((ids||[]).filter(Boolean))];
     return `<option value="">${esc(placeholder)}</option>`+unique.map(id=>`<option value="${esc(id)}">${esc(getPlayerName(id,values))}${values?.[id]?.position?` · ${esc(values[id].position)}`:''}</option>`).join('');
@@ -58,8 +58,9 @@
     </style><div class="season-intel-head"><div><h3>Season Intelligence</h3><p>Maximum Edge mode · recommendations only · no automatic roster moves</p></div><span id="seasonFreshness" class="season-badge">WAITING</span></div><div class="season-tabs" id="seasonTabs"></div><div class="season-panel" id="seasonPanel"><div class="season-empty">Connect a supported fantasy league to build your Weekly Attack Plan.</div></div>`;
     const footer=document.querySelector('footer');
     if(footer?.parentNode)footer.parentNode.insertBefore(wrap,footer);else document.body.appendChild(wrap);
+    const completed=window.ffmCanonicalDraftState?.status==='completed';
     const tabs=['Weekly Attack Plan','Command Center','Roster Doctor','Waiver Assassin','Trade Hunter','What-If Matrix','Playoff Path','Opponent Exploiter','Player Status'];
-    document.getElementById('seasonTabs').innerHTML=tabs.map((t,i)=>`<button class="season-tab${i===0?' active':''}" data-season-tab="${esc(t)}">${esc(t)}</button>`).join('');
+    document.getElementById('seasonTabs').innerHTML=tabs.map((t,i)=>`<button class="season-tab${(completed?t==='Command Center':i===0)?' active':''}" data-season-tab="${esc(t)}">${esc(t)}</button>`).join('');
     document.getElementById('seasonTabs').addEventListener('click',e=>{const b=e.target.closest('[data-season-tab]');if(!b)return;if(b.classList.contains('active'))return;document.querySelectorAll('.season-tab').forEach(x=>x.classList.toggle('active',x===b));render(window.ffmLeagueSnapshot,b.dataset.seasonTab)});
   }
 
