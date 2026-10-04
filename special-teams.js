@@ -155,7 +155,6 @@
     if(typeof previous==='function')window.renderAll=function(){const result=previous.apply(this,arguments);requestAnimationFrame(sync);return result};
     document.getElementById('resetDraft')?.addEventListener('click',()=>{bench.clear();localStorage.removeItem(BENCH_KEY);setTimeout(sync,0)});
     document.getElementById('fastUndo')?.addEventListener('click',()=>setTimeout(()=>{pruneBench();sync()},0));
-    document.querySelectorAll('.brand small').forEach(el=>el.textContent=el.textContent.replace(/v\d+\.\d+\.\d+/,`v${VERSION}`));
   }
 
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();

@@ -65,11 +65,6 @@
     document.head.appendChild(style);
 
     // Visible version bump without disturbing the existing layout.
-    document.querySelectorAll('.brand small').forEach(el => {
-      el.textContent = el.textContent.replace(/v\d+\.\d+\.\d+/, `v${FAST_VERSION}`);
-    });
-    const footer = document.querySelector('footer');
-    if (footer) footer.innerHTML = footer.innerHTML.replace(/v\d+\.\d+\.\d+/, `v${FAST_VERSION}`);
 
     const filters = document.querySelector('#draft .filters');
     if (filters && !document.getElementById('fastTools')) {

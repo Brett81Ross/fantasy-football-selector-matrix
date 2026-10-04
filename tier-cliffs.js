@@ -24,12 +24,6 @@
     `;
     document.head.appendChild(style);
 
-    document.querySelectorAll('.brand small').forEach(el => {
-      el.textContent = el.textContent.replace(/v\d+\.\d+\.\d+/, `v${VERSION}`);
-    });
-    const footer = document.querySelector('footer');
-    if (footer) footer.innerHTML = footer.innerHTML.replace(/v\d+\.\d+\.\d+/, `v${VERSION}`);
-
     function liveValue(player) {
       if (!player) return 0;
       const score = Number(matrixScore(player) || 0);

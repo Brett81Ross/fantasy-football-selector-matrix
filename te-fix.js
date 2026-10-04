@@ -108,7 +108,4 @@
 
   patchBoardFilter();
   normalizePlayers(typeof state!=='undefined'?state.players:[]);
-  document.querySelectorAll('.brand small').forEach(el=>{el.textContent=el.textContent.replace(/v\d+\.\d+\.\d+/,`v${VERSION}`);});
-  const footer=document.querySelector('footer');
-  if(footer)footer.innerHTML=footer.innerHTML.replace(/v\d+\.\d+\.\d+/,`v${VERSION}`);
 })();
