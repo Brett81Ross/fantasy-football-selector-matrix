@@ -45,7 +45,7 @@ test('live refresh publishes team kickoff context for the Command Center',()=>{
 test('ABL-30 wiring leaves shared version authority and deployment lock intact',()=>{
  const app=read('api/app.js');
  assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
- assert.equal(read('VERSION').trim(),'1.7.2');
+ assert.equal(read('VERSION').trim(),'1.7.3');
  assert.match(read('vercel.json'),/"deploymentEnabled"\s*:\s*false/);
 });
 
@@ -60,4 +60,14 @@ test('post-draft runtime cannot render draft-only Decision Matrix and branding u
  assert.match(brand,/window\.__FFM_VERSION__/);
  assert.doesNotMatch(brand,/const VERSION\s*=\s*['"]\d+\.\d+\.\d+['"]/);
  assert.doesNotMatch(dm,/const VERSION\s*=\s*['"]\d+\.\d+\.\d+['"]/);
+});
+
+
+test('legacy feature modules cannot rewrite visible app version',()=>{
+ const fs=require('node:fs');const path=require('node:path');
+ for(const file of ['te-fix.js','fast-draft.js','special-teams.js','vorp.js','tier-cliffs.js']){
+  const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
+  assert.doesNotMatch(source,/querySelectorAll\(['"]\.brand small['"]\)/,file+' must not rewrite brand version');
+  assert.doesNotMatch(source,/footer[^\n]*innerHTML[^\n]*replace\(\/v\\d/,file+' must not rewrite footer version');
+ }
 });
