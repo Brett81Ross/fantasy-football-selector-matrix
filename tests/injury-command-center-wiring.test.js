@@ -45,7 +45,7 @@ test('live refresh publishes team kickoff context for the Command Center',()=>{
 test('ABL-30 wiring leaves shared version authority and deployment lock intact',()=>{
  const app=read('api/app.js');
  assert.match(app,/const VERSION=require\(['"]\.\.\/version['"]\)/);
- assert.equal(read('VERSION').trim(),'1.7.3');
+ assert.equal(read('VERSION').trim(),'1.7.4');
  assert.match(read('vercel.json'),/"deploymentEnabled"\s*:\s*false/);
 });
 
@@ -70,4 +70,14 @@ test('legacy feature modules cannot rewrite visible app version',()=>{
   assert.doesNotMatch(source,/querySelectorAll\(['"]\.brand small['"]\)/,file+' must not rewrite brand version');
   assert.doesNotMatch(source,/footer[^\n]*innerHTML[^\n]*replace\(\/v\\d/,file+' must not rewrite footer version');
  }
+});
+
+
+test('server runtime version and release VERSION cannot diverge',()=>{
+ const fs=require('node:fs');const path=require('node:path');
+ const release=fs.readFileSync(path.join(__dirname,'../VERSION'),'utf8').trim();
+ delete require.cache[require.resolve('../version')];
+ const runtime=require('../version');
+ assert.equal(runtime,release);
+ assert.equal(runtime,'1.7.4');
 });
