@@ -108,6 +108,8 @@
     if(budgetRemaining<=0)return unavailable('FAAB bid unavailable because this roster has no FAAB remaining.',budgetTotal,0);
 
     const addId=text(waiverMove?.addPlayerId),dropId=text(waiverMove?.dropPlayerId);
+    const weeklyDelta=numeric(waiverMove?.weeklyLineupDelta,0);
+    if(weeklyDelta<2)return unavailable(`FAAB bid suppressed because the move improves the optimized weekly lineup by only ${round(weeklyDelta,1)} points; Matrix requires at least a 2.0-point weekly edge before recommending spend.`,budgetTotal,budgetRemaining);
     if(!addId||!dropId)return unavailable('FAAB bid unavailable because the waiver move is missing an add or drop player.',budgetTotal,budgetRemaining);
     if(!(snapshot.freeAgentPlayerIds||[]).map(text).includes(addId))return unavailable('FAAB bid unavailable because the target is not a confirmed free agent.',budgetTotal,budgetRemaining);
     if(!(roster.playerIds||[]).map(text).includes(dropId))return unavailable('FAAB bid unavailable because the proposed drop is not owned by this roster.',budgetTotal,budgetRemaining);
