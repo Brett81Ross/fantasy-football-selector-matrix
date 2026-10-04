@@ -150,7 +150,7 @@
 
     const style = document.createElement('style');
     style.textContent = `
-      body.ffm-live-draft-mounted .fast-dock{display:none!important}
+      body.ffm-live-draft-mounted .fast-dock{display:none!important}\n      body.ffm-season-home .hero,body.ffm-season-home nav.tabs,body.ffm-season-home #draft{display:none!important}\n      body.ffm-season-home #seasonIntel{margin-top:10px!important}
       .live-draft-mode{position:sticky;top:max(6px,env(safe-area-inset-top));z-index:18;margin:8px 0 12px;border:1px solid rgba(57,255,20,.38);background:rgba(5,14,9,.97);backdrop-filter:blur(15px);border-radius:20px;padding:12px;box-shadow:0 15px 38px rgba(0,0,0,.46)}
       .live-draft-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.live-draft-eyebrow{font-size:9px;font-weight:950;letter-spacing:.14em;color:var(--accent)}.live-sync{font-size:9px;font-weight:950;border:1px solid #315742;border-radius:999px;padding:5px 8px;color:var(--accent)}
       .live-headline{font-size:clamp(20px,5vw,32px);line-height:1.05;font-weight:1000;margin:8px 0 4px}.live-reason{font-size:11px;line-height:1.4;color:var(--muted);min-height:31px}.live-slot{color:var(--accent);font-weight:900}
@@ -227,6 +227,14 @@
     });
 
     panel.dataset.mode = view.mode;
+    if(view.mode==='post_draft'){
+      document.body.classList.add('ffm-season-home');
+      const season=document.getElementById('seasonIntel');
+      const header=document.querySelector('header.top');
+      if(season&&header&&season.previousElementSibling!==header)header.insertAdjacentElement('afterend',season);
+      const command=document.querySelector('.season-tab[data-season-tab="Command Center"]');
+      if(command&&!command.classList.contains('active'))command.click();
+    }else document.body.classList.remove('ffm-season-home');
     document.getElementById('liveEyebrow').textContent = view.mode === 'post_draft' ? 'POST-DRAFT MODE' : 'LIVE DRAFT MODE';
     document.getElementById('liveSync').textContent = view.syncLabel;
     document.getElementById('liveHeadline').textContent = view.headline;
