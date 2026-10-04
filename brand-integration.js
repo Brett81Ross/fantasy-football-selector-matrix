@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.4.5';
+  const VERSION = String(window.__FFM_VERSION__ || document.documentElement.dataset.ffmVersion || 'runtime');
   const SHIELD = '/icons/ffm-user-logo.svg';
 
   function applyBranding() {
