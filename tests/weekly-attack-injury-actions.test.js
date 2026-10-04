@@ -75,6 +75,6 @@ test('injury waiver fallback must be legal for the injured starter slot and posi
  const source=require('node:fs').readFileSync(require('node:path').join(__dirname,'../season-core/weekly-attack-plan.js'),'utf8');
  assert.match(source,/eligiblePositions\.has\(text\(move\.targetPosition\)\.toUpperCase\(\)\)/);
  assert.match(source,/num\(move\.expectedImprovement\)>0/);
- assert.match(source,/num\(move\.weeklyLineupDelta\)>0/);
+ assert.match(source,/num\(move\.weeklyLineupDelta\)>=2/);
  assert.doesNotMatch(source,/\|\|waiverMove/);
 });
